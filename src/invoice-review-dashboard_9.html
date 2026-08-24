@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AP SmartFlow AI — Invoice Review & Approval</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sidebar-bg:#0d1526;
+    --sidebar-bg-2:#111c33;
+    --sidebar-text:#8b96ab;
+    --sidebar-text-active:#ffffff;
+    --sidebar-active-bg:#1e3a8a;
+    --app-bg:#eef1f6;
+    --card-bg:#ffffff;
+    --border:#e3e7ee;
+    --border-soft:#edf0f5;
+    --text-primary:#141a26;
+    --text-secondary:#69707f;
+    --text-muted:#9aa1b0;
+    --blue:#2563eb;
+    --blue-light:#eff4ff;
+    --green:#16a34a;
+    --green-light:#eafaf0;
+    --red:#dc2626;
+    --red-light:#fdeeee;
+    --amber:#d97706;
+    --amber-light:#fef3e2;
+    --orange-badge-bg:#fff1e6;
+    --orange-badge-text:#c2410c;
+    --radius:10px;
+    --radius-sm:6px;
+    --shadow-card:0 1px 2px rgba(20,26,38,0.04), 0 1px 8px rgba(20,26,38,0.03);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:var(--app-bg);
+    color:var(--text-primary);
+    font-size:13px;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#c7ccd6;border-radius:8px;}
+  ::-webkit-scrollbar-thumb:hover{background:#a9b0bf;}
+
+  .app{display:flex;height:100vh;overflow:hidden;}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:212px;flex-shrink:0;background:var(--sidebar-bg);
+    display:flex;flex-direction:column;color:var(--sidebar-text);
+    padding:16px 12px;position:relative;
+    transition:width .16s ease,padding .16s ease;
+    overflow-x:hidden;
+  }
+  .sidebar.collapsed{width:64px;padding:16px 10px;}
+  .sidebar.collapsed .nav-item,
+  .sidebar.collapsed .quick-filter{justify-content:center;padding-left:0;padding-right:0;}
+  .sidebar.collapsed .label,
+  .sidebar.collapsed .count,
+  .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .logo-text,
+  .sidebar.collapsed .user-text,
+  .sidebar.collapsed .quick-filter,
+  .sidebar.collapsed .dot{display:none;}
+  .sidebar.collapsed .sidebar-logo{justify-content:center;padding:6px 0 20px;}
+  .sidebar.collapsed .sidebar-user{justify-content:center;padding:10px 0;}
+  .sidebar.collapsed .nav-item .count{display:none;}
+  .sidebar.collapsed .collapse-btn{justify-content:center;}
+  .sidebar.collapsed .collapse-btn svg{transform:rotate(180deg);}
+  .sidebar-logo{display:flex;align-items:center;gap:10px;padding:6px 8px 20px;transition:padding .16s ease;}
+  .sidebar-logo .mark{
+    width:32px;height:32px;border-radius:9px;
+    background:linear-gradient(135deg,#3b82f6,#1e40af);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:14px;flex-shrink:0;
+  }
+  .sidebar-logo .name{font-weight:700;color:#fff;font-size:13.5px;line-height:1.2;}
+  .sidebar-logo .sub{font-size:10.5px;color:#6b7688;font-weight:500;}
+  .nav-section{margin-bottom:6px;}
+  .nav-item{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;
+    font-size:12.5px;font-weight:500;color:var(--sidebar-text);margin-bottom:2px;
+    cursor:pointer;transition:background .12s;position:relative;
+  }
+  .nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.85;}
+  .nav-item:hover{background:var(--sidebar-bg-2);color:#fff;}
+  .nav-item.active{background:var(--sidebar-active-bg);color:#fff;}
+  .nav-item.active svg{opacity:1;}
+  .nav-item .count{
+    margin-left:auto;font-size:10.5px;background:rgba(255,255,255,.12);
+    padding:1px 6px;border-radius:20px;color:#cfd6e4;
+  }
+  .nav-item.active .count{background:rgba(255,255,255,.22);color:#fff;}
+  .nav-item.exceptions .count{background:var(--red);color:#fff;}
+  .nav-divider{height:1px;background:#1c2740;margin:12px 4px;}
+  .nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5c6579;padding:6px 10px 6px;font-weight:700;}
+  .quick-filter{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:7px;font-size:12px;color:#aeb6c6;cursor:pointer;}
+  .quick-filter:hover{background:var(--sidebar-bg-2);}
+  .quick-filter.active{background:rgba(37,99,235,.22);color:#fff;}
+  .quick-filter.active .count{color:#dbe4fb;}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .quick-filter .count{margin-left:auto;color:#7d869a;font-size:11px;}
+  .date-filter-block{padding:4px 10px 2px;}
+  .date-row{display:flex;align-items:center;gap:5px;margin-bottom:8px;}
+  .date-input{
+    flex:1;min-width:0;background:#0f1830;border:1px solid #263151;border-radius:6px;
+    color:#dbe1ec;font-size:10.5px;padding:6px 5px;color-scheme:dark;font-family:inherit;
+  }
+  .date-input:focus{outline:none;border-color:var(--blue);}
+  .date-sep{color:#5c6579;font-size:11px;flex-shrink:0;}
+  .apply-filter-btn{
+    width:100%;display:flex;align-items:center;justify-content:center;gap:6px;
+    background:var(--sidebar-active-bg);color:#fff;border:none;border-radius:7px;padding:7px 0;
+    font-size:12px;font-weight:600;
+  }
+  .apply-filter-btn:hover{background:#1e40af;}
+  .apply-filter-btn svg{width:12px;height:12px;}
+  .sidebar.collapsed .date-filter-block{display:none;}
+  .sidebar-spacer{flex:1;}
+  .sidebar-user{
+    display:flex;align-items:center;gap:9px;padding:10px 8px;border-top:1px solid #1c2740;margin-top:8px;
+  }
+  .avatar{width:30px;height:30px;border-radius:50%;background:#2c3a5c;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;}
+  .sidebar-user .uname{color:#fff;font-size:12.5px;font-weight:600;line-height:1.3;}
+  .sidebar-user .urole{font-size:10.5px;color:#7d869a;}
+  .collapse-btn{
+    display:flex;align-items:center;gap:9px;width:100%;margin-top:6px;padding:8px 10px;
+    background:transparent;border:none;border-radius:8px;color:#8b96ab;font-size:12px;font-weight:600;
+  }
+  .collapse-btn:hover{background:var(--sidebar-bg-2);color:#fff;}
+  .collapse-btn svg{width:15px;height:15px;flex-shrink:0;transition:transform .16s ease;}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden;}
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px;background:var(--card-bg);border-bottom:1px solid var(--border);flex-shrink:0;
+  }
+  .topbar-left{display:flex;align-items:center;gap:12px;}
+  .topbar h1{font-size:17px;font-weight:700;margin:0;}
+  .badge{font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.02em;}
+  .badge.review{background:var(--orange-badge-bg);color:var(--orange-badge-text);}
+  .topbar-actions{display:flex;gap:8px;align-items:center;}
+  .btn{
+    border:1px solid var(--border);background:#fff;color:var(--text-primary);
+    padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;gap:6px;transition:.12s;
+  }
+  .btn:hover{background:#f7f8fa;}
+  .btn svg{width:13px;height:13px;}
+  .btn.primary{background:var(--green);border-color:var(--green);color:#fff;}
+  .btn.primary:hover{background:#128a3e;}
+  .btn.danger{background:var(--red);border-color:var(--red);color:#fff;}
+  .btn.danger:hover{background:#c31c1c;}
+  .btn.send{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .btn.send:hover{background:#1d4ed8;}
+  .btn.icon-only{padding:7px 8px;}
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(13,18,30,.55);display:flex;align-items:center;justify-content:center;
+    z-index:150;opacity:0;pointer-events:none;transition:opacity .15s ease;
+  }
+  .modal-overlay.open{opacity:1;pointer-events:auto;}
+  .modal{
+    background:#fff;border-radius:14px;width:440px;max-width:92vw;
+    box-shadow:0 24px 64px rgba(10,14,24,.3);transform:translateY(12px) scale(.98);
+    transition:transform .15s ease;
+  }
+  .modal-overlay.open .modal{transform:translateY(0) scale(1);}
+  .modal-head{display:flex;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border-soft);}
+  .modal-head h3{margin:0;font-size:15px;font-weight:700;}
+  .modal-head .close-x{margin-left:auto;}
+  .modal-body{padding:18px;display:flex;flex-direction:column;gap:14px;}
+  .modal-context{margin:0;font-size:12.5px;color:var(--text-secondary);line-height:1.5;}
+  .modal-field label{font-size:11.5px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;display:block;}
+  .modal-field label .req{color:var(--red);}
+  .modal-field input, .modal-field textarea{
+    width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 11px;
+    font-size:13px;font-family:inherit;color:var(--text-primary);background:#fbfbfd;
+  }
+  .modal-field input:focus, .modal-field textarea:focus{outline:none;border-color:var(--blue);background:#fff;}
+  .modal-field textarea{resize:vertical;min-height:96px;line-height:1.5;}
+  .modal-field .error{color:var(--red);font-size:11px;margin-top:5px;display:none;}
+  .modal-field.invalid input{border-color:var(--red);background:var(--red-light);}
+  .modal-field.invalid .error{display:block;}
+  .modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid var(--border-soft);}
+
+  /* ---------- TOAST ---------- */
+  .toast{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(16px);
+    background:#101a2b;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;
+    box-shadow:0 10px 28px rgba(0,0,0,.22);opacity:0;pointer-events:none;
+    transition:opacity .2s ease,transform .2s ease;display:flex;align-items:center;gap:9px;z-index:200;
+    max-width:80vw;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast svg{width:16px;height:16px;color:#22c55e;flex-shrink:0;}
+
+  .infobar{
+    display:flex;padding:12px 22px;gap:0;background:var(--card-bg);border-bottom:1px solid var(--border);
+    flex-shrink:0;overflow-x:auto;
+  }
+  .info-field{padding:0 22px;border-right:1px solid var(--border-soft);white-space:nowrap;}
+  .info-field:first-child{padding-left:0;}
+  .info-field:last-child{border-right:none;}
+  .info-field .label{font-size:10.5px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px;}
+  .info-field .value{font-size:13px;font-weight:600;color:var(--text-primary);}
+  .info-field .value.link{color:var(--blue);cursor:pointer;}
+  .info-field .value.due{color:var(--red);}
+  .info-field .value.total{color:var(--text-primary);font-weight:700;}
+
+  .panels{flex:1;display:flex;min-height:0;overflow:hidden;}
+
+  /* ---------- DOCUMENT VIEWER ---------- */
+  .doc-panel{
+    width:340px;flex-shrink:0;background:var(--card-bg);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;min-height:0;
+  }
+  .doc-toolbar{
+    display:flex;align-items:center;gap:4px;padding:9px 12px;border-bottom:1px solid var(--border-soft);flex-shrink:0;
+  }
+  .doc-toolbar .zoom{font-size:11.5px;color:var(--text-secondary);font-weight:600;margin-right:auto;display:flex;align-items:center;gap:5px;}
+  .icon-btn{
+    width:26px;height:26px;border-radius:6px;border:none;background:transparent;color:var(--text-secondary);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn:hover{background:#f0f2f6;color:var(--text-primary);}
+  .icon-btn svg{width:14px;height:14px;}
+  .doc-body{flex:1;overflow-y:auto;padding:14px;}
+  .invoice-sheet{
+    background:#fff;border:1px solid var(--border);border-radius:6px;padding:20px 18px;box-shadow:0 1px 4px rgba(0,0,0,.04);
+    font-size:11px;
+  }
+  .inv-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+  .inv-head .brand{font-size:15px;font-weight:800;letter-spacing:.03em;}
+  .inv-head .brand-sub{font-size:9px;color:var(--text-muted);letter-spacing:.08em;margin-top:1px;}
+  .inv-head .inv-title{font-size:16px;font-weight:800;text-align:right;}
+  .inv-head .inv-meta{font-size:10px;color:var(--text-secondary);text-align:right;margin-top:2px;}
+  .inv-addrs{display:flex;justify-content:space-between;margin-bottom:14px;gap:10px;}
+  .inv-addrs .addr-label{font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;margin-bottom:3px;}
+  .inv-addrs .addr-body{font-size:10.5px;line-height:1.5;color:var(--text-secondary);}
+  .inv-meta-row{display:flex;gap:0;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);padding:8px 0;margin-bottom:12px;}
+  .inv-meta-row div{flex:1;}
+  .inv-meta-row .l{font-size:9px;color:var(--text-muted);font-weight:700;}
+  .inv-meta-row .v{font-size:10.5px;font-weight:600;margin-top:1px;}
+  table.doc-table{width:100%;border-collapse:collapse;font-size:10px;}
+  table.doc-table th{text-align:left;font-size:9px;color:var(--text-muted);font-weight:700;padding:5px 4px;border-bottom:1px solid var(--border);}
+  table.doc-table td{padding:6px 4px;border-bottom:1px solid var(--border-soft);color:var(--text-secondary);}
+  table.doc-table td.num, table.doc-table th.num{text-align:right;}
+  .doc-totals{margin-top:10px;margin-left:auto;width:60%;font-size:10.5px;}
+  .doc-totals div{display:flex;justify-content:space-between;padding:3px 0;color:var(--text-secondary);}
+  .doc-totals .grand{border-top:1.5px solid var(--text-primary);margin-top:4px;padding-top:6px;font-weight:800;color:var(--text-primary);font-size:12px;}
+  .doc-thumbs{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--border-soft);flex-shrink:0;}
+  .thumb-strip{display:flex;gap:6px;overflow-x:auto;flex:1;padding:2px;}
+  .thumb-strip .thumb{
+    width:32px;height:40px;border:2px solid var(--border);border-radius:4px;background:#f4f6f9;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--text-muted);
+  }
+  .thumb-strip .thumb:hover{border-color:#9db4e0;}
+  .thumb-strip .thumb.active{border-color:var(--blue);color:var(--blue);background:var(--blue-light);}
+  .doc-thumbs .pageinfo{font-size:11px;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;}
+  .doc-thumbs .icon-btn:disabled{opacity:.35;cursor:default;}
+  .doc-thumbs .icon-btn:disabled:hover{background:transparent;}
+  .page-note{
+    margin-top:8px;font-size:9.5px;color:var(--text-muted);text-align:right;font-style:italic;
+  }
+  table.doc-table.mini{margin-top:2px;}
+  table.doc-table.mini td, table.doc-table.mini th{padding:4px;}
+  .remit-page{padding:6px 2px;}
+  .remit-page h4{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-weight:700;margin:0 0 6px;border-bottom:1px solid var(--border-soft);padding-bottom:5px;}
+  .remit-page .block{margin-bottom:16px;font-size:10.5px;color:var(--text-secondary);line-height:1.6;}
+  .remit-page .block b{color:var(--text-primary);}
+  .remit-page .thanks{margin-top:24px;text-align:center;font-size:11px;color:var(--text-muted);font-style:italic;}
+
+  /* ---------- FORM PANEL (middle) ---------- */
+  .form-panel{flex:1;min-width:0;display:flex;flex-direction:column;overflow-y:auto;padding:16px;gap:14px;}
+  .card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-card);}
+  .card-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border-soft);}
+  .card-head h2{font-size:13.5px;font-weight:700;margin:0;}
+  .confidence{font-size:10px;font-weight:700;background:var(--green-light);color:var(--green);padding:2px 9px;border-radius:20px;}
+  .card-head .spacer{flex:1;}
+  .link-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--blue);background:none;border:none;padding:4px 6px;}
+  .link-btn svg{width:13px;height:13px;}
+
+  .field-grid{display:flex;flex-wrap:wrap;gap:12px 16px;padding:14px 16px;}
+  .field{display:flex;flex-direction:column;gap:5px;flex:1 1 28%;min-width:170px;}
+  .field label{font-size:10.5px;font-weight:600;color:var(--text-secondary);}
+  .field label .req{color:var(--red);}
+  .field .input-wrap{position:relative;display:flex;align-items:center;}
+  .field input, .field select{
+    width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 26px 7px 9px;
+    font-size:12.5px;color:var(--text-primary);background:#fbfbfd;font-weight:500;
+  }
+  .field input:focus, .field select:focus{outline:none;border-color:var(--blue);background:#fff;}
+  .field .check{position:absolute;right:8px;width:14px;height:14px;color:var(--green);pointer-events:none;}
+  .field.due input{color:var(--red);font-weight:700;}
+  .field.wide{flex-basis:60%;}
+  input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+  input[type=number]{-moz-appearance:textfield;}
+  .erp-compare{
+    display:flex;align-items:center;gap:5px;font-size:10.5px;margin-top:2px;padding:0 1px;
+  }
+  .erp-compare svg{width:11px;height:11px;flex-shrink:0;}
+  .erp-compare.match{color:var(--text-muted);}
+  .erp-compare.match svg{color:var(--green);}
+  .erp-compare.mismatch{color:var(--amber);font-weight:600;cursor:help;}
+  .erp-compare.mismatch svg{color:var(--amber);}
+  .erp-legend{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text-muted);margin-right:12px;}
+  .dotlegend.erp{width:6px;height:6px;border-radius:50%;background:#94a3b8;display:inline-block;}
+
+  /* tables */
+  .table-scroll{max-height:230px;overflow-y:auto;border-top:1px solid var(--border-soft);}
+  .table-scroll.charges{max-height:120px;}
+  table.line-table{width:100%;border-collapse:collapse;font-size:11.5px;}
+  table.line-table thead th{
+    position:sticky;top:0;background:#f8f9fb;text-align:left;font-size:10px;font-weight:700;
+    color:var(--text-muted);text-transform:uppercase;letter-spacing:.02em;padding:8px 8px;border-bottom:1px solid var(--border);z-index:1;
+  }
+  table.line-table th.num, table.line-table td.num{text-align:right;}
+  table.line-table th.center, table.line-table td.center{text-align:center;}
+  table.line-table tbody td{padding:5px 8px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
+  table.line-table tbody tr:hover{background:#fafbfd;}
+  table.line-table input{
+    width:100%;border:1px solid transparent;background:transparent;border-radius:5px;padding:4px 5px;
+    font-size:11.5px;color:var(--text-primary);font-weight:500;text-align:inherit;
+  }
+  table.line-table input:hover{border-color:var(--border);}
+  table.line-table input:focus{outline:none;border-color:var(--blue);background:#fff;}
+  table.line-table input.account-input{font-size:10.5px;min-width:150px;}
+  .erp-mini{display:block;font-size:9.5px;margin-top:2px;font-weight:600;text-align:right;white-space:nowrap;}
+  .erp-mini.match{color:var(--text-muted);font-weight:500;}
+  .erp-mini.mismatch{color:var(--amber);}
+  table.line-table td.desc{font-weight:600;}
+  table.line-table .sub{font-size:10px;color:var(--text-muted);display:block;font-weight:500;margin-top:1px;}
+  .status-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+  .status-pill.matched{background:var(--green-light);color:var(--green);}
+  .status-pill.review{background:var(--amber-light);color:var(--amber);}
+  .status-pill svg{width:10px;height:10px;}
+  .row-actions{display:flex;gap:2px;justify-content:flex-end;}
+  .row-actions .icon-btn{width:22px;height:22px;}
+  .row-actions .icon-btn svg{width:12px;height:12px;}
+  .variance{font-weight:700;}
+  .variance.flag{color:var(--amber);}
+  .variance.ok{color:var(--text-muted);font-weight:500;}
+
+  .table-footer{display:flex;align-items:center;padding:8px 16px;border-top:1px solid var(--border-soft);}
+  .add-row-btn{
+    display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--blue);
+    background:var(--blue-light);border:1px dashed #b7cbfa;border-radius:7px;padding:6px 12px;
+  }
+  .add-row-btn:hover{background:#e4ecfe;}
+  .add-row-btn svg{width:13px;height:13px;}
+
+  .totals-strip{
+    display:flex;flex-wrap:wrap;gap:10px;padding:14px 16px;
+  }
+  .totals-strip .tbox{padding:10px 12px;flex:1 1 150px;}
+  .totals-strip .tbox .l{font-size:10.5px;color:var(--text-secondary);font-weight:600;margin-bottom:3px;}
+  .totals-strip .tbox .v{font-size:14px;font-weight:700;}
+  .totals-strip .tbox.grand{
+    background:var(--blue-light);border-radius:9px;padding:10px 16px;text-align:right;flex:1 1 190px;
+  }
+  .totals-strip .tbox.grand .l{color:var(--blue);}
+  .totals-strip .tbox.grand .v{font-size:19px;color:var(--blue);font-weight:800;}
+  .totals-strip .tbox.grand .variance-note{font-size:10px;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:4px;justify-content:flex-end;}
+  .totals-strip .tbox.grand .variance-note.ok{color:var(--green);}
+  .totals-strip .tbox.grand .variance-note.flag{color:var(--amber);}
+  .totals-strip .tbox.grand .variance-note svg{width:11px;height:11px;}
+
+  /* ---------- AI ASSISTANT PANEL ---------- */
+  .ai-panel{width:320px;flex-shrink:0;background:var(--card-bg);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;}
+  .ai-head{display:flex;align-items:center;gap:8px;padding:13px 14px;border-bottom:1px solid var(--border-soft);flex-shrink:0;}
+  .ai-head .ai-icon{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+  .ai-head .ai-icon svg{width:14px;height:14px;}
+  .ai-head .ai-title{font-weight:700;font-size:13px;}
+  .ai-head .spacer{flex:1;}
+  .ai-tabs{display:flex;gap:16px;padding:0 14px;border-bottom:1px solid var(--border-soft);flex-shrink:0;}
+  .ai-tab{padding:9px 2px;font-size:12px;font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;cursor:pointer;}
+  .ai-tab.active{color:var(--blue);border-color:var(--blue);}
+  .ai-chat{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+  .msg{max-width:88%;font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:12px;}
+  .msg.bot{background:#f2f4f8;color:var(--text-primary);align-self:flex-start;border-bottom-left-radius:3px;}
+  .msg.user{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+  .suggested{display:flex;flex-direction:column;gap:6px;margin-top:2px;}
+  .suggested button{
+    text-align:left;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px;
+    font-size:12px;font-weight:500;color:var(--text-primary);
+  }
+  .suggested button:hover{border-color:var(--blue);background:var(--blue-light);}
+  .view-receipt{margin-top:6px;display:inline-block;background:var(--blue);color:#fff;font-size:11px;font-weight:600;padding:5px 10px;border:none;border-radius:6px;}
+  .ai-input-bar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border-soft);flex-shrink:0;}
+  .ai-input-bar input{flex:1;border:1px solid var(--border);border-radius:20px;padding:9px 14px;font-size:12.5px;background:#f8f9fb;}
+  .ai-input-bar input:focus{outline:none;border-color:var(--blue);background:#fff;}
+  .ai-input-bar button{width:34px;height:34px;border-radius:50%;background:var(--blue);border:none;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ai-input-bar button svg{width:15px;height:15px;}
+  .ai-disclaimer{font-size:9.5px;color:var(--text-muted);text-align:center;padding:0 12px 10px;}
+
+  /* ---------- BACK BUTTON ---------- */
+  .back-btn{
+    width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text-secondary);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .back-btn:hover{background:#f5f6f9;color:var(--text-primary);}
+  .back-btn svg{width:15px;height:15px;}
+
+  /* ---------- QUEUE / LIST VIEW ---------- */
+  #queueScreen{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:18px 22px;gap:16px;}
+  #detailScreen{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .queue-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .queue-search{
+    flex:1;max-width:340px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
+    border-radius:9px;padding:8px 12px;
+  }
+  .queue-search svg{width:15px;height:15px;color:var(--text-muted);flex-shrink:0;}
+  .queue-search input{border:none;outline:none;font-size:13px;width:100%;background:transparent;color:var(--text-primary);}
+  .queue-summary{font-size:12px;color:var(--text-secondary);font-weight:600;white-space:nowrap;}
+
+  .stat-cards{display:flex;flex-wrap:wrap;gap:12px;}
+  .stat-card{
+    flex:1;min-width:150px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;
+    cursor:pointer;transition:.12s;box-shadow:var(--shadow-card);
+  }
+  .stat-card:hover{border-color:#c3cee2;transform:translateY(-1px);}
+  .stat-card.selected{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.16);}
+  .stat-card .n{font-size:24px;font-weight:800;color:var(--text-primary);line-height:1.1;}
+  .stat-card .l{font-size:11.5px;color:var(--text-secondary);font-weight:600;margin-top:4px;}
+  .stat-card .bar{height:3px;border-radius:3px;margin-top:10px;}
+
+  .queue-table-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-card);overflow:hidden;}
+  table.queue-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.queue-table thead th{
+    text-align:left;font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.02em;
+    padding:11px 16px;border-bottom:1px solid var(--border);background:#fafbfd;
+  }
+  table.queue-table th.num, table.queue-table td.num{text-align:right;}
+  table.queue-table tbody tr{cursor:pointer;transition:background .1s;}
+  table.queue-table tbody tr:hover{background:#f7f9fc;}
+  table.queue-table tbody tr:not(:last-child) td{border-bottom:1px solid var(--border-soft);}
+  table.queue-table td{padding:12px 16px;vertical-align:middle;}
+  table.queue-table td.inv-num{font-weight:700;color:var(--blue);}
+  table.queue-table td.vendor-cell{font-weight:600;}
+  table.queue-table td.amount-cell{font-weight:700;}
+  .row-status{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;display:inline-block;}
+  .row-status.st-review{background:var(--orange-badge-bg);color:var(--orange-badge-text);}
+  .row-status.st-exception{background:var(--red-light);color:var(--red);}
+  .row-status.st-processed{background:var(--green-light);color:var(--green);}
+  .row-status.st-pending{background:#eef1f6;color:var(--text-secondary);}
+  .flag-chips{display:flex;flex-wrap:wrap;gap:4px;max-width:220px;}
+  .flag-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--text-secondary);background:#f2f4f8;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+  .flag-chip .fdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .queue-empty{padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="mark">AP</div>
+      <div class="logo-text">
+        <div class="name">AP SmartFlow AI</div>
+        <div class="sub">Accounts Payable</div>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-item active" title="Dashboard" data-view="dashboard" onclick="showQueueView('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span class="label">Dashboard</span></div>
+      <div class="nav-item" title="My Queue" data-view="queue" onclick="showQueueView('queue')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span class="label">My Queue</span><span class="count" id="navCountQueue">18</span></div>
+      <div class="nav-item" title="In Review" data-view="inreview" onclick="showQueueView('inreview')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><span class="label">In Review</span><span class="count" id="navCountReview">6</span></div>
+      <div class="nav-item exceptions" title="Exceptions" data-view="exceptions" onclick="showQueueView('exceptions')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><span class="label">Exceptions</span><span class="count" id="navCountExceptions">4</span></div>
+      <div class="nav-item" title="Processed Payment" data-view="processed" onclick="showQueueView('processed')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg><span class="label">Processed Payment</span></div>
+      <div class="nav-item" title="Analytics" onclick="showToast('Analytics is not part of this prototype yet')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span class="label">Analytics</span></div>
+    </div>
+
+    <div class="nav-divider"></div>
+    <div class="nav-label">Quick Filters</div>
+    <div class="quick-filter" title="PO Mismatch" onclick="applyQuickFilter(this,'poMismatch','PO Mismatch')"><span class="dot" style="background:#8b5cf6"></span><span class="label">PO Mismatch</span><span class="count">3</span></div>
+    <div class="quick-filter" title="Price Variance" onclick="applyQuickFilter(this,'priceVariance','Price Variance')"><span class="dot" style="background:#f59e0b"></span><span class="label">Price Variance</span><span class="count">5</span></div>
+    <div class="quick-filter" title="Qty Variance" onclick="applyQuickFilter(this,'qtyVariance','Qty Variance')"><span class="dot" style="background:#f97316"></span><span class="label">Qty Variance</span><span class="count">2</span></div>
+    <div class="quick-filter" title="Low OCR Confidence" onclick="applyQuickFilter(this,'lowConfidence','Low OCR Confidence')"><span class="dot" style="background:#eab308"></span><span class="label">Low OCR Confidence</span><span class="count">4</span></div>
+    <div class="quick-filter" title="Duplicate Suspected" onclick="applyQuickFilter(this,'duplicateSuspected','Duplicate Suspected')"><span class="dot" style="background:#ef4444"></span><span class="label">Duplicate Suspected</span><span class="count">1</span></div>
+    <div class="quick-filter" title="Overdue Invoices" onclick="applyQuickFilter(this,'overdue','Overdue Invoices')"><span class="dot" style="background:#dc2626"></span><span class="label">Overdue Invoices</span><span class="count">2</span></div>
+
+    <div class="nav-divider"></div>
+    <div class="nav-label">Date Range</div>
+    <div class="date-filter-block">
+      <div class="date-row">
+        <input type="date" id="dateFrom" class="date-input" title="From date">
+        <span class="date-sep">–</span>
+        <input type="date" id="dateTo" class="date-input" title="To date">
+      </div>
+      <button class="apply-filter-btn" onclick="applyDateFilter()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18M6 4v16M18 4v16M3 10h18M3 16h18"/></svg>
+        Apply
+      </button>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user" title="Ashok Shetty — AP Manager">
+      <div class="avatar">AS</div>
+      <div class="user-text">
+        <div class="uname">Ashok Shetty</div>
+        <div class="urole">AP Manager</div>
+      </div>
+    </div>
+    <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()" title="Collapse sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/><path d="M4 4v16"/></svg>
+      <span class="label">Collapse</span>
+    </button>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="back-btn" id="backBtn" onclick="showQueueView(lastListView)" style="display:none" title="Back to list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h1 id="pageTitle">Dashboard</h1>
+        <span class="badge review" id="pageBadge" style="display:none">In Review</span>
+      </div>
+      <div class="topbar-actions" id="detailActions" style="display:none">
+        <button class="btn">Save Draft</button>
+        <button class="btn" onclick="openClarificationModal()">Request Clarification</button>
+        <button class="btn primary" onclick="createVoucher()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Create Voucher</button>
+        <button class="btn danger" onclick="closeInvoice()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>Close</button>
+        <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
+      </div>
+    </div>
+
+    <!-- ============ QUEUE / LIST VIEW ============ -->
+    <div id="queueScreen">
+      <div class="queue-toolbar">
+        <div class="queue-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="queueSearch" placeholder="Search invoice #, vendor..." oninput="renderQueueTable()">
+        </div>
+        <div class="queue-summary" id="queueSummary">18 invoices</div>
+      </div>
+
+      <div class="stat-cards" id="statCards"><!-- injected on dashboard view --></div>
+
+      <div class="queue-table-wrap">
+        <table class="queue-table">
+          <thead>
+            <tr>
+              <th>Invoice #</th><th>Vendor</th><th>Invoice Date</th><th>Due Date</th>
+              <th class="num">Amount</th><th>Status</th><th>Flags</th>
+            </tr>
+          </thead>
+          <tbody id="queueBody"><!-- injected by JS --></tbody>
+        </table>
+        <div class="queue-empty" id="queueEmpty" style="display:none">No invoices match the current filters.</div>
+      </div>
+    </div>
+
+    <!-- ============ INVOICE DETAIL VIEW ============ -->
+    <div id="detailScreen" style="display:none">
+    <div class="infobar">
+      <div class="info-field"><div class="label">Vendor</div><div class="value link" id="dVendor">ABC Supplies Inc.</div><div style="font-size:10.5px;color:var(--text-muted)" id="dVendorId">V000212</div></div>
+      <div class="info-field"><div class="label">Invoice #</div><div class="value" id="dInvoiceNum">INV-2025-05678</div></div>
+      <div class="info-field"><div class="label">Invoice Date</div><div class="value" id="dInvoiceDate">05/14/2025</div></div>
+      <div class="info-field"><div class="label">Due Date</div><div class="value due" id="dDueDate">06/13/2025</div></div>
+      <div class="info-field"><div class="label">Total Amount</div><div class="value total" id="topTotal">$17,006.67 USD</div></div>
+      <div class="info-field"><div class="label">Document Type</div><div class="value">Invoice</div></div>
+      <div class="info-field"><div class="label">Payment Terms</div><div class="value">Net 30</div></div>
+    </div>
+
+    <div class="panels">
+
+      <!-- ===== DOCUMENT VIEWER ===== -->
+      <div class="doc-panel">
+        <div class="doc-toolbar">
+          <div class="zoom">
+            <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg></button>
+            100%
+            <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg></button>
+          </div>
+          <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+          <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></button>
+          <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg></button>
+          <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></button>
+        </div>
+        <div class="doc-body" id="docBody"><!-- page content injected by JS --></div>
+        <div class="doc-thumbs">
+          <button class="icon-btn" id="docPrevBtn" onclick="prevDocPage()" title="Previous page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="thumb-strip" id="thumbStrip"><!-- thumbnails injected by JS --></div>
+          <div class="pageinfo" id="pageInfo">1 of 3</div>
+          <button class="icon-btn" id="docNextBtn" onclick="nextDocPage()" title="Next page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== FORM PANEL ===== -->
+      <div class="form-panel">
+
+        <!-- Header Information -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Header Information</h2>
+            <span class="confidence">Confidence: 95%</span>
+            <div class="spacer"></div>
+            <span class="erp-legend"><span class="dotlegend erp"></span>ERP value shown below each field</span>
+            <button class="link-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label>Invoice Number <span class="req">*</span></label>
+              <div class="input-wrap"><input value="INV-2025-05678"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div class="erp-compare match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>ERP: INV-2025-05678</div>
+            </div>
+            <div class="field">
+              <label>Invoice Date <span class="req">*</span></label>
+              <div class="input-wrap"><input value="05/14/2025"></div>
+              <div class="erp-compare match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>ERP: 05/14/2025</div>
+            </div>
+            <div class="field due">
+              <label>Due Date <span class="req">*</span></label>
+              <div class="input-wrap"><input value="06/13/2025"></div>
+              <div class="erp-compare mismatch" title="ERP calculates due date as Net 30 from goods-receipt date, not invoice date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>ERP: 06/18/2025</div>
+            </div>
+
+            <div class="field">
+              <label>PO References</label>
+              <div class="input-wrap"><input value="4500123456, 4500123457"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div class="erp-compare match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>ERP: 4500123456, 4500123457</div>
+            </div>
+            <div class="field">
+              <label>Payment Terms</label>
+              <div class="input-wrap"><select><option>Net 30</option><option>Net 45</option><option>Net 60</option></select></div>
+              <div class="erp-compare match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>ERP: Net 30 (vendor master)</div>
+            </div>
+            <div class="field">
+              <label>Document Type</label>
+              <div class="input-wrap"><select><option>Invoice</option><option>Credit Memo</option></select></div>
+            </div>
+
+            <div class="field">
+              <label>Vendor <span class="req">*</span></label>
+              <div class="input-wrap"><input value="ABC Supplies Inc."><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div class="erp-compare match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>ERP: ABC Supplies Inc.</div>
+            </div>
+            <div class="field">
+              <label>Vendor ID</label>
+              <div class="input-wrap"><input value="V000212"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div class="erp-compare match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>ERP: V000212 (active)</div>
+            </div>
+            <div class="field">
+              <label>Currency</label>
+              <div class="input-wrap"><select><option>USD</option><option>CAD</option><option>EUR</option></select></div>
+              <div class="erp-compare match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>ERP default: USD</div>
+            </div>
+
+            <div class="field wide">
+              <label>Bill To</label>
+              <div class="input-wrap"><input value="Global Manufacturing Corp., 1000 Innovation Drive, Fremont, CA 94538"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div class="erp-compare mismatch" title="ERP address on file differs from the extracted bill-to address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>ERP: 1000 Innovation Dr, Bldg B, Fremont, CA 94538</div>
+            </div>
+            <div class="field"><label>Notes</label><div class="input-wrap"><input placeholder="Enter header notes..."></div></div>
+          </div>
+        </div>
+
+        <!-- Invoice Line Items -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Invoice Line Items</h2>
+            <div class="spacer"></div>
+            <span style="font-size:11px;color:var(--text-muted)">9 lines</span>
+          </div>
+          <div class="table-scroll" id="lineItemsScroll">
+            <table class="line-table">
+              <thead>
+                <tr>
+                  <th style="width:20px">#</th><th>Description</th><th class="num" style="width:54px">Qty</th>
+                  <th class="num" style="width:80px">Price</th>
+                  <th class="num" style="width:76px">Amount</th>
+                  <th class="center" style="width:36px">Status</th><th style="width:24px"></th>
+                </tr>
+              </thead>
+              <tbody id="lineItemsBody"><!-- rows injected by JS --></tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <button class="add-row-btn" onclick="addLineItem()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Add Line</button>
+          </div>
+        </div>
+
+        <!-- Additional Charges -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Additional Charges</h2>
+            <div class="spacer"></div>
+            <span style="font-size:11px;color:var(--text-muted)">5 charges</span>
+          </div>
+          <div class="table-scroll charges" id="chargesScroll">
+            <table class="line-table">
+              <thead>
+                <tr>
+                  <th style="width:20px">#</th><th>Charge</th><th class="num" style="width:76px">Inv. Amt</th>
+                  <th class="num" style="width:36px">Var.</th>
+                  <th style="width:172px">Account</th>
+                  <th class="center" style="width:34px">Status</th><th style="width:22px"></th>
+                </tr>
+              </thead>
+              <tbody id="chargesBody"><!-- rows injected by JS --></tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <button class="add-row-btn" onclick="addCharge()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Add Charge</button>
+          </div>
+        </div>
+
+        <!-- Totals -->
+        <div class="card">
+          <div class="totals-strip">
+            <div class="tbox"><div class="l">Merchandise Subtotal</div><div class="v" id="sumMerch">$0.00</div></div>
+            <div class="tbox"><div class="l">Total Additional Charges</div><div class="v" id="sumCharges">$0.00</div></div>
+            <div class="tbox"><div class="l">Tax (7.75%)</div><div class="v" id="sumTax">$0.00</div></div>
+            <div class="tbox grand"><div class="l">Invoice Total</div><div class="v" id="sumGrand">$0.00 USD</div><div class="variance-note" id="varianceNote"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AI ASSISTANT PANEL ===== -->
+      <div class="ai-panel">
+        <div class="ai-head">
+          <div class="ai-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z"/></svg></div>
+          <div class="ai-title">AI Assistant</div>
+          <div class="spacer"></div>
+          <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></button>
+        </div>
+        <div class="ai-tabs">
+          <div class="ai-tab active">Chat</div>
+          <div class="ai-tab">Invoice Insights</div>
+        </div>
+        <div class="ai-chat" id="chatBody">
+          <div class="msg bot">Hi Ashok, I'm your AP AI Assistant. How can I help you with this invoice?</div>
+          <div class="suggested">
+            <button onclick="askPrompt('Summarize this invoice')">Summarize this invoice</button>
+            <button onclick="askPrompt('Check PO match status')">Check PO match status</button>
+            <button onclick="askPrompt('Why is freight flagged?')">Why is freight flagged?</button>
+            <button onclick="askPrompt('Show receipt for line 3')">Show receipt for line 3</button>
+            <button onclick="askPrompt('Show vendor history')">Show vendor history</button>
+          </div>
+        </div>
+        <div class="ai-input-bar">
+          <input id="chatInput" type="text" placeholder="Ask anything about this invoice...">
+          <button onclick="sendChat()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg></button>
+        </div>
+        <div class="ai-disclaimer">AI responses may be inaccurate. Verify important information.</div>
+      </div>
+
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REQUEST CLARIFICATION MODAL ============ -->
+<div class="modal-overlay" id="clarificationOverlay" onclick="if(event.target===this) closeClarificationModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Request Clarification</h3>
+      <button class="icon-btn close-x" onclick="closeClarificationModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-context">Send a question about invoice <strong id="clarifyInvoiceNum">INV-2025-05678</strong> to the vendor. They'll receive it by email.</p>
+      <div class="modal-field" id="emailField">
+        <label>Send to (email) <span class="req">*</span></label>
+        <input type="email" id="clarifyEmail" placeholder="vendor@abcsupplies.com" value="ap@abcsupplies.com">
+        <div class="error">Enter a valid email address.</div>
+      </div>
+      <div class="modal-field">
+        <label>Message</label>
+        <textarea id="clarifyMessage">Hi, we're reviewing invoice INV-2025-05678 and need clarification on the freight charge — the invoiced amount is $25 over the matching PO. Could you confirm the correct amount? Thanks.</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeClarificationModal()">Cancel</button>
+      <button class="btn send" id="sendClarifyBtn" onclick="sendClarification()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        Send Message
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+/* ---------------- ICONS ---------------- */
+const ICON_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>`;
+const ICON_WARN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>`;
+const ICON_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const ICON_TRASH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z"/></svg>`;
+const HEADER_STATED_TOTAL = 17006.67; // OCR-extracted total printed on the invoice document itself
+
+/* ---------------- DATA ---------------- */
+let lineItems = [
+  {desc:"Industrial Motor SHP", qty:5, poQty:5, uom:"EA", price:1200.00, poPrice:1200.00, po:"…3456 / L1"},
+  {desc:"V-Belt A-56", qty:10, poQty:10, uom:"EA", price:35.00, poPrice:35.00, po:"…3456 / L2"},
+  {desc:"Bearings 6205ZZ", qty:20, poQty:18, uom:"EA", price:28.50, poPrice:28.50, po:"…3457 / L1"},
+  {desc:"Hydraulic Pump HP-40", qty:3, poQty:3, uom:"EA", price:980.00, poPrice:980.00, po:"…3457 / L2"},
+  {desc:"Gasket Set GS-12", qty:15, poQty:15, uom:"EA", price:140.00, poPrice:132.00, po:"…3456 / L3"},
+  {desc:"Coupling CPL-8", qty:6, poQty:6, uom:"EA", price:210.00, poPrice:210.00, po:"…3457 / L3"},
+  {desc:"Filter Cartridge FC-3", qty:12, poQty:12, uom:"EA", price:45.00, poPrice:45.00, po:"…3456 / L4"},
+  {desc:"Sensor Assembly SA-9", qty:4, poQty:4, uom:"EA", price:365.00, poPrice:340.00, po:"…3457 / L4"},
+  {desc:"Mounting Bracket MB-2", qty:8, poQty:8, uom:"EA", price:52.00, poPrice:52.00, po:"…3456 / L5"},
+];
+
+let charges = [
+  {type:"Freight", desc:"Freight Charge", inv:425.00, po:400.00, allocate:"Both POs", account:"6210 - Freight", status:"review"},
+  {type:"Fuel Surcharge", desc:"Fuel Surcharge", inv:75.00, po:75.00, allocate:"Both POs", account:"6215 - Fuel", status:"matched"},
+  {type:"Handling", desc:"Handling Charge", inv:25.00, po:0.00, allocate:"4500123456", account:"6220 - Handling", status:"review"},
+  {type:"Discount", desc:"Early Pay Discount", inv:-100.00, po:-100.00, allocate:"Both POs", account:"4900 - Discounts", status:"matched"},
+  {type:"Sales Tax", desc:"Sales Tax (7.75%)", inv:945.67, po:945.67, allocate:"Both POs", account:"2100 - Sales Tax", status:"matched"},
+];
+
+function money(n){
+  const sign = n < 0 ? "-" : "";
+  return sign + "$" + Math.abs(n).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+/* ---------------- INVOICE DOCUMENT PAGES ---------------- */
+const docPages = [
+  // Page 1 — header, addresses, PO info, line items 1-5
+  `<div class="invoice-sheet">
+    <div class="inv-head">
+      <div><div class="brand">ABC<br>SUPPLIES INC.</div></div>
+      <div>
+        <div class="inv-title">INVOICE</div>
+        <div class="inv-meta">INVOICE #: INV-2025-05678</div>
+        <div class="inv-meta">DATE: 05/14/2025</div>
+      </div>
+    </div>
+    <div class="inv-addrs">
+      <div>
+        <div class="addr-label">BILL TO:</div>
+        <div class="addr-body">Global Manufacturing Corp.<br>1000 Innovation Drive<br>Fremont, CA 94538</div>
+      </div>
+      <div style="text-align:right">
+        <div class="addr-label">SHIP TO:</div>
+        <div class="addr-body">Global Manufacturing Corp.<br>Receiving Dock<br>Fremont, CA 94538</div>
+      </div>
+    </div>
+    <div class="inv-meta-row">
+      <div><div class="l">PO #</div><div class="v">4500123456 / 4500123457</div></div>
+      <div><div class="l">TERMS</div><div class="v">Net 30</div></div>
+      <div><div class="l">DUE DATE</div><div class="v">06/13/2025</div></div>
+    </div>
+    <table class="doc-table">
+      <thead><tr><th>#</th><th>DESCRIPTION</th><th class="num">QTY</th><th class="num">UNIT</th><th class="num">AMOUNT</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Industrial Motor SHP</td><td class="num">5</td><td class="num">1,200.00</td><td class="num">6,000.00</td></tr>
+        <tr><td>2</td><td>V-Belt A-56</td><td class="num">10</td><td class="num">35.00</td><td class="num">350.00</td></tr>
+        <tr><td>3</td><td>Bearings 6205ZZ</td><td class="num">20</td><td class="num">28.50</td><td class="num">570.00</td></tr>
+        <tr><td>4</td><td>Hydraulic Pump HP-40</td><td class="num">3</td><td class="num">980.00</td><td class="num">2,940.00</td></tr>
+        <tr><td>5</td><td>Gasket Set GS-12</td><td class="num">15</td><td class="num">140.00</td><td class="num">2,100.00</td></tr>
+      </tbody>
+    </table>
+    <div class="page-note">Continued on page 2 of 3 →</div>
+  </div>`,
+
+  // Page 2 — line items 6-9, additional charges, grand total
+  `<div class="invoice-sheet">
+    <div class="inv-head">
+      <div><div class="brand">ABC<br>SUPPLIES INC.</div></div>
+      <div>
+        <div class="inv-title" style="font-size:12px">INVOICE (cont'd)</div>
+        <div class="inv-meta">INVOICE #: INV-2025-05678</div>
+      </div>
+    </div>
+    <table class="doc-table">
+      <thead><tr><th>#</th><th>DESCRIPTION</th><th class="num">QTY</th><th class="num">UNIT</th><th class="num">AMOUNT</th></tr></thead>
+      <tbody>
+        <tr><td>6</td><td>Coupling CPL-8</td><td class="num">6</td><td class="num">210.00</td><td class="num">1,260.00</td></tr>
+        <tr><td>7</td><td>Filter Cartridge FC-3</td><td class="num">12</td><td class="num">45.00</td><td class="num">540.00</td></tr>
+        <tr><td>8</td><td>Sensor Assembly SA-9</td><td class="num">4</td><td class="num">365.00</td><td class="num">1,460.00</td></tr>
+        <tr><td>9</td><td>Mounting Bracket MB-2</td><td class="num">8</td><td class="num">52.00</td><td class="num">416.00</td></tr>
+      </tbody>
+    </table>
+    <table class="doc-table mini" style="margin-top:14px">
+      <thead><tr><th colspan="2">ADDITIONAL CHARGES</th><th class="num">AMOUNT</th></tr></thead>
+      <tbody>
+        <tr><td colspan="2">Freight</td><td class="num">425.00</td></tr>
+        <tr><td colspan="2">Fuel Surcharge</td><td class="num">75.00</td></tr>
+        <tr><td colspan="2">Handling</td><td class="num">25.00</td></tr>
+        <tr><td colspan="2">Early Pay Discount</td><td class="num">-100.00</td></tr>
+        <tr><td colspan="2">Sales Tax (7.75%)</td><td class="num">945.67</td></tr>
+      </tbody>
+    </table>
+    <div class="doc-totals">
+      <div><span>MERCHANDISE SUBTOTAL</span><span>15,636.00</span></div>
+      <div><span>ADDITIONAL CHARGES</span><span>1,370.67</span></div>
+      <div class="grand"><span>TOTAL</span><span>$17,006.67</span></div>
+    </div>
+    <div class="page-note">Remittance details on page 3 of 3 →</div>
+  </div>`,
+
+  // Page 3 — remittance / terms
+  `<div class="invoice-sheet">
+    <div class="inv-head">
+      <div><div class="brand">ABC<br>SUPPLIES INC.</div></div>
+      <div>
+        <div class="inv-title" style="font-size:12px">REMITTANCE ADVICE</div>
+        <div class="inv-meta">INVOICE #: INV-2025-05678</div>
+      </div>
+    </div>
+    <div class="remit-page">
+      <div class="block">
+        <h4>Remit Payment To</h4>
+        <b>ABC Supplies Inc.</b><br>
+        Attn: Accounts Receivable<br>
+        4820 Commerce Parkway<br>
+        Ontario, CA 91761
+      </div>
+      <div class="block">
+        <h4>Payment Terms</h4>
+        Net 30 from invoice date. A 2% early-payment discount applies if paid within 10 days.
+        Late payments accrue 1.5% monthly interest on the outstanding balance.
+      </div>
+      <div class="block">
+        <h4>Questions About This Invoice</h4>
+        Contact AP Billing at ap@abcsupplies.com or (909) 555-0148, referencing invoice
+        INV-2025-05678 and PO 4500123456 / 4500123457.
+      </div>
+      <div class="thanks">Thank you for your business.</div>
+    </div>
+  </div>`
+];
+
+let currentDocPage = 0;
+
+function renderDocPage(){
+  document.getElementById("docBody").innerHTML = docPages[currentDocPage];
+  document.getElementById("pageInfo").textContent = `${currentDocPage + 1} of ${docPages.length}`;
+  document.getElementById("docPrevBtn").disabled = currentDocPage === 0;
+  document.getElementById("docNextBtn").disabled = currentDocPage === docPages.length - 1;
+
+  const strip = document.getElementById("thumbStrip");
+  strip.innerHTML = "";
+  docPages.forEach((_, i) => {
+    const t = document.createElement("div");
+    t.className = "thumb" + (i === currentDocPage ? " active" : "");
+    t.textContent = i + 1;
+    t.title = `Page ${i + 1}`;
+    t.onclick = () => { currentDocPage = i; renderDocPage(); };
+    strip.appendChild(t);
+  });
+  document.getElementById("docBody").scrollTop = 0;
+}
+function prevDocPage(){
+  if(currentDocPage > 0){ currentDocPage--; renderDocPage(); }
+}
+function nextDocPage(){
+  if(currentDocPage < docPages.length - 1){ currentDocPage++; renderDocPage(); }
+}
+
+/* ---------------- LINE ITEMS ---------------- */
+function renderLineItems(){
+  const body = document.getElementById("lineItemsBody");
+  body.innerHTML = "";
+  lineItems.forEach((item, i) => {
+    const amount = item.qty * item.price;
+    const hasPoPrice = typeof item.poPrice === "number";
+    const hasPoQty = typeof item.poQty === "number";
+    const priceMatched = !hasPoPrice || Math.abs(item.price - item.poPrice) < 0.005;
+    const qtyMatched = !hasPoQty || item.qty === item.poQty;
+    const matched = priceMatched && qtyMatched;
+    const priceErpLine = hasPoPrice
+      ? `<span class="erp-mini ${priceMatched ? 'match' : 'mismatch'}">ERP ${money(item.poPrice)}</span>`
+      : "";
+    const qtyErpLine = hasPoQty
+      ? `<span class="erp-mini ${qtyMatched ? 'match' : 'mismatch'}">ERP ${item.poQty}</span>`
+      : "";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="color:var(--text-muted)">${i+1}</td>
+      <td class="desc">${item.desc}<span class="sub">${item.po}</span></td>
+      <td class="num">
+        <input type="number" value="${item.qty}" step="1" onchange="updateLineItem(${i}, 'qty', this.value)">
+        ${qtyErpLine}
+      </td>
+      <td class="num">
+        <input type="number" value="${item.price.toFixed(2)}" step="0.01" onchange="updateLineItem(${i}, 'price', this.value)">
+        ${priceErpLine}
+      </td>
+      <td class="num" style="font-weight:600">${money(amount)}</td>
+      <td class="center">
+        <span class="status-pill ${matched ? 'matched' : 'review'}">${matched ? ICON_CHECK : ICON_WARN}</span>
+      </td>
+      <td>
+        <button class="icon-btn" title="Delete" onclick="removeLineItem(${i})">${ICON_TRASH}</button>
+      </td>`;
+    body.appendChild(tr);
+  });
+  document.querySelector('.card:nth-of-type(2) .card-head span').textContent = lineItems.length + " lines";
+  calculateTotals();
+}
+
+function updateLineItem(i, field, value){
+  lineItems[i][field] = parseFloat(value) || 0;
+  renderLineItems();
+}
+function removeLineItem(i){
+  lineItems.splice(i, 1);
+  renderLineItems();
+}
+function addLineItem(){
+  lineItems.push({desc:"New Item", qty:1, poQty:1, uom:"EA", price:0.00, poPrice:0.00, po:"—"});
+  renderLineItems();
+  document.getElementById("lineItemsScroll").scrollTop = document.getElementById("lineItemsScroll").scrollHeight;
+}
+
+/* ---------------- CHARGES ---------------- */
+function renderCharges(){
+  const body = document.getElementById("chargesBody");
+  body.innerHTML = "";
+  charges.forEach((c, i) => {
+    const variance = c.inv - c.po;
+    const flagged = Math.abs(variance) > 0.001;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="color:var(--text-muted)">${i+1}</td>
+      <td class="desc">${c.type}<span class="sub">${c.desc} · ${c.allocate}</span></td>
+      <td class="num">
+        <input type="number" value="${c.inv.toFixed(2)}" step="0.01" onchange="updateCharge(${i}, 'inv', this.value)">
+        <span class="erp-mini ${flagged ? 'mismatch' : 'match'}">ERP ${money(c.po)}</span>
+      </td>
+      <td class="num variance ${flagged ? 'flag' : 'ok'}">${flagged ? money(variance) : "0.00"}</td>
+      <td><input type="text" class="account-input" value="${c.account}" onchange="updateCharge(${i}, 'account', this.value)"></td>
+      <td class="center">
+        <span class="status-pill ${c.status}">${c.status === "matched" ? ICON_CHECK : ICON_WARN}</span>
+      </td>
+      <td>
+        <button class="icon-btn" title="Delete" onclick="removeCharge(${i})">${ICON_TRASH}</button>
+      </td>`;
+    body.appendChild(tr);
+  });
+  document.querySelector('.card:nth-of-type(3) .card-head span').textContent = charges.length + " charges";
+  calculateTotals();
+}
+function updateCharge(i, field, value){
+  charges[i][field] = (field === "inv") ? (parseFloat(value) || 0) : value;
+  renderCharges();
+}
+function removeCharge(i){
+  charges.splice(i, 1);
+  renderCharges();
+}
+function addCharge(){
+  charges.push({type:"New Charge", desc:"Description", inv:0.00, po:0.00, allocate:"Both POs", account:"— Select account —", status:"review"});
+  renderCharges();
+  document.getElementById("chargesScroll").scrollTop = document.getElementById("chargesScroll").scrollHeight;
+}
+
+/* ---------------- TOTALS ---------------- */
+function calculateTotals(){
+  const merch = lineItems.reduce((s, it) => s + it.qty * it.price, 0);
+  const chargesTotal = charges.reduce((s, c) => s + c.inv, 0);
+  const taxRow = charges.find(c => c.type.toLowerCase().includes("tax"));
+  const tax = taxRow ? taxRow.inv : 0;
+  const grand = merch + chargesTotal;
+
+  document.getElementById("sumMerch").textContent = money(merch);
+  document.getElementById("sumCharges").textContent = money(chargesTotal);
+  document.getElementById("sumTax").textContent = money(tax);
+  document.getElementById("sumGrand").textContent = money(grand) + " USD";
+
+  const note = document.getElementById("varianceNote");
+  const diff = grand - HEADER_STATED_TOTAL;
+  if (Math.abs(diff) < 0.01) {
+    note.className = "variance-note ok";
+    note.innerHTML = ICON_CHECK + "Matches invoice total";
+  } else {
+    note.className = "variance-note flag";
+    note.innerHTML = ICON_WARN + `${diff > 0 ? "+" : "-"}${money(Math.abs(diff))} vs. invoice`;
+  }
+}
+
+/* ---------------- AI CHAT ---------------- */
+const canned = {
+  "summarize this invoice": "This invoice from ABC Supplies Inc. totals the amount shown above across 2 linked POs, covering industrial parts plus freight, handling and tax. Confidence on header extraction is 95%.",
+  "check po match status": "Most line items match their PO within tolerance. 2 lines and 2 additional charges are flagged for review due to price or amount variance — see the amber \"Review\" badges below.",
+  "why is freight flagged?": "Freight is flagged because the invoice amount is higher than the matched PO amount. Please review before approving.",
+  "show receipt for line 3": "Receipt found for this line — received in full against the linked PO, quantity and unit match the invoice.",
+  "show vendor history": "ABC Supplies Inc. (V000212) has a clean payment history with no prior disputes and consistently on-time deliveries over the last 12 months."
+};
+
+function askPrompt(text){
+  document.getElementById("chatInput").value = text;
+  sendChat();
+}
+
+function sendChat(){
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if(!text) return;
+  const chat = document.getElementById("chatBody");
+
+  const userMsg = document.createElement("div");
+  userMsg.className = "msg user";
+  userMsg.textContent = text;
+  chat.appendChild(userMsg);
+  input.value = "";
+  chat.scrollTop = chat.scrollHeight;
+
+  setTimeout(() => {
+    const botMsg = document.createElement("div");
+    botMsg.className = "msg bot";
+    const reply = canned[text.toLowerCase()] || "Let me check that against the invoice and linked purchase orders for you.";
+    botMsg.textContent = reply;
+    chat.appendChild(botMsg);
+    chat.scrollTop = chat.scrollHeight;
+  }, 500);
+}
+
+document.getElementById("chatInput").addEventListener("keydown", e => {
+  if(e.key === "Enter") sendChat();
+});
+
+/* ---------------- SIDEBAR COLLAPSE ---------------- */
+function toggleSidebar(){
+  const sidebar = document.getElementById("sidebar");
+  const btn = document.getElementById("collapseBtn");
+  const collapsed = sidebar.classList.toggle("collapsed");
+  btn.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+}
+
+/* ---------------- TOAST ---------------- */
+let toastTimer = null;
+function showToast(message){
+  const toast = document.getElementById("toast");
+  document.getElementById("toastMsg").textContent = message;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
+}
+
+/* ---------------- REQUEST CLARIFICATION MODAL ---------------- */
+function openClarificationModal(){
+  const invId = document.getElementById("dInvoiceNum").textContent;
+  document.getElementById("clarifyInvoiceNum").textContent = invId;
+  document.getElementById("clarifyMessage").value = `Hi, we're reviewing invoice ${invId} and need clarification on the freight charge — the invoiced amount is $25 over the matching PO. Could you confirm the correct amount? Thanks.`;
+  document.getElementById("clarificationOverlay").classList.add("open");
+  document.getElementById("clarifyEmail").focus();
+}
+function closeClarificationModal(){
+  document.getElementById("clarificationOverlay").classList.remove("open");
+  document.getElementById("emailField").classList.remove("invalid");
+}
+function sendClarification(){
+  const emailInput = document.getElementById("clarifyEmail");
+  const email = emailInput.value.trim();
+  const emailField = document.getElementById("emailField");
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  if(!validEmail){
+    emailField.classList.add("invalid");
+    emailInput.focus();
+    return;
+  }
+  emailField.classList.remove("invalid");
+  closeClarificationModal();
+  showToast(`Clarification request sent to ${email}`);
+}
+document.getElementById("clarifyEmail").addEventListener("keydown", e => {
+  document.getElementById("emailField").classList.remove("invalid");
+});
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") closeClarificationModal();
+});
+
+/* ---------------- QUEUE / INVOICE LIST DATA ---------------- */
+const FLAG_META = {
+  poMismatch:       {label:"PO Mismatch",         color:"#8b5cf6"},
+  priceVariance:    {label:"Price Variance",      color:"#f59e0b"},
+  qtyVariance:      {label:"Qty Variance",         color:"#f97316"},
+  lowConfidence:    {label:"Low OCR Confidence",   color:"#eab308"},
+  duplicateSuspected:{label:"Duplicate Suspected", color:"#ef4444"},
+  overdue:          {label:"Overdue",              color:"#dc2626"},
+};
+
+const invoices = [
+  {id:"INV-2025-05678", vendor:"ABC Supplies Inc.",       vendorId:"V000212", invoiceDate:"2025-05-14", dueDate:"2025-06-13", amount:17006.67, status:"review",    flags:["priceVariance","lowConfidence"]},
+  {id:"INV-2025-05701", vendor:"Northwind Fasteners",     vendorId:"V000318", invoiceDate:"2025-05-15", dueDate:"2025-06-14", amount:8240.00,  status:"review",    flags:["qtyVariance"]},
+  {id:"INV-2025-05688", vendor:"Titan Steel Works",       vendorId:"V000144", invoiceDate:"2025-05-13", dueDate:"2025-06-12", amount:22150.50, status:"review",    flags:["poMismatch"]},
+  {id:"INV-2025-05699", vendor:"Pacific Hydraulics",      vendorId:"V000271", invoiceDate:"2025-05-16", dueDate:"2025-06-15", amount:5430.25,  status:"review",    flags:["lowConfidence"]},
+  {id:"INV-2025-05650", vendor:"Summit Electrical Supply",vendorId:"V000092", invoiceDate:"2025-05-10", dueDate:"2025-06-09", amount:3120.00,  status:"review",    flags:["lowConfidence"]},
+  {id:"INV-2025-05712", vendor:"Coastal Packaging Co.",   vendorId:"V000356", invoiceDate:"2025-05-17", dueDate:"2025-06-16", amount:1980.75,  status:"review",    flags:["priceVariance"]},
+
+  {id:"INV-2025-05421", vendor:"Vertex Machine Parts",    vendorId:"V000118", invoiceDate:"2025-04-28", dueDate:"2025-05-28", amount:12760.00, status:"exception", flags:["poMismatch","duplicateSuspected"]},
+  {id:"INV-2025-05433", vendor:"Ridgeline Industrial",    vendorId:"V000204", invoiceDate:"2025-04-29", dueDate:"2025-05-29", amount:6540.00,  status:"exception", flags:["priceVariance","overdue"]},
+  {id:"INV-2025-05455", vendor:"BrightPoint Chemicals",   vendorId:"V000287", invoiceDate:"2025-05-01", dueDate:"2025-05-31", amount:9875.40,  status:"exception", flags:["qtyVariance"]},
+  {id:"INV-2025-05468", vendor:"Falcon Freight Services", vendorId:"V000163", invoiceDate:"2025-05-02", dueDate:"2025-06-01", amount:2340.00,  status:"exception", flags:["lowConfidence","overdue"]},
+
+  {id:"INV-2025-05201", vendor:"Meridian Plastics",       vendorId:"V000059", invoiceDate:"2025-04-02", dueDate:"2025-05-02", amount:14220.00, status:"processed", flags:[]},
+  {id:"INV-2025-05215", vendor:"Grayson Bearings",        vendorId:"V000233", invoiceDate:"2025-04-05", dueDate:"2025-05-05", amount:4560.00,  status:"processed", flags:["poMismatch"]},
+  {id:"INV-2025-05230", vendor:"Union Fabricators",       vendorId:"V000175", invoiceDate:"2025-04-08", dueDate:"2025-05-08", amount:18900.00, status:"processed", flags:[]},
+  {id:"INV-2025-05248", vendor:"Lakeside Adhesives",      vendorId:"V000309", invoiceDate:"2025-04-12", dueDate:"2025-05-12", amount:2760.00,  status:"processed", flags:["priceVariance"]},
+  {id:"INV-2025-05260", vendor:"Copperline Electric",     vendorId:"V000082", invoiceDate:"2025-04-15", dueDate:"2025-05-15", amount:7420.00,  status:"processed", flags:[]},
+
+  {id:"INV-2025-05740", vendor:"Anchor Safety Supply",    vendorId:"V000341", invoiceDate:"2025-05-18", dueDate:"2025-06-17", amount:3340.00,  status:"pending",   flags:["lowConfidence"]},
+  {id:"INV-2025-05755", vendor:"Delta Filtration",        vendorId:"V000127", invoiceDate:"2025-05-19", dueDate:"2025-06-18", amount:6120.00,  status:"pending",   flags:["priceVariance"]},
+  {id:"INV-2025-05762", vendor:"Horizon Sealants",        vendorId:"V000198", invoiceDate:"2025-05-20", dueDate:"2025-06-19", amount:1540.00,  status:"pending",   flags:[]},
+];
+
+const STATUS_META = {
+  review:    {label:"In Review",    cls:"st-review"},
+  exception: {label:"Exception",    cls:"st-exception"},
+  processed: {label:"Processed",    cls:"st-processed"},
+  pending:   {label:"Pending Approval", cls:"st-pending"},
+};
+
+const VIEW_META = {
+  dashboard: {title:"Dashboard",        filterStatus:null},
+  queue:     {title:"My Queue",         filterStatus:null},
+  inreview:  {title:"In Review",        filterStatus:"review"},
+  exceptions:{title:"Exceptions",       filterStatus:"exception"},
+  processed: {title:"Processed Payment",filterStatus:"processed"},
+};
+
+let currentView = "dashboard";
+let lastListView = "dashboard";
+let activeFlagFilter = null;
+let dateFilterActive = false;
+
+function fmtDate(iso){
+  const [y,m,d] = iso.split("-");
+  return `${m}/${d}/${y}`;
+}
+
+/* ---------------- VIEW SWITCHING ---------------- */
+function showQueueView(view){
+  currentView = view;
+  lastListView = view;
+
+  document.querySelectorAll(".nav-item[data-view]").forEach(n => n.classList.toggle("active", n.dataset.view === view));
+
+  document.getElementById("backBtn").style.display = "none";
+  document.getElementById("pageBadge").style.display = "none";
+  document.getElementById("detailActions").style.display = "none";
+  document.getElementById("pageTitle").textContent = VIEW_META[view].title;
+  document.getElementById("queueScreen").style.display = "flex";
+  document.getElementById("detailScreen").style.display = "none";
+
+  document.getElementById("statCards").innerHTML = "";
+  if(view === "dashboard"){
+    renderStatCards();
+  }
+
+  renderQueueTable();
+}
+
+function renderStatCards(){
+  const cards = [
+    {key:"queue",      n: invoices.length, l:"My Queue", color:"#2563eb"},
+    {key:"inreview",   n: invoices.filter(i=>i.status==="review").length, l:"In Review", color:"#d97706"},
+    {key:"exceptions", n: invoices.filter(i=>i.status==="exception").length, l:"Exceptions", color:"#dc2626"},
+    {key:"processed",  n: invoices.filter(i=>i.status==="processed").length, l:"Processed Payment", color:"#16a34a"},
+  ];
+  const wrap = document.getElementById("statCards");
+  wrap.innerHTML = cards.map(c => `
+    <div class="stat-card" onclick="showQueueView('${c.key}')">
+      <div class="n">${c.n}</div>
+      <div class="l">${c.l}</div>
+      <div class="bar" style="background:${c.color}"></div>
+    </div>
+  `).join("");
+}
+
+/* ---------------- QUEUE TABLE RENDER / FILTER ---------------- */
+function renderQueueTable(){
+  const meta = VIEW_META[currentView];
+  let rows = invoices.slice();
+
+  if(meta.filterStatus) rows = rows.filter(i => i.status === meta.filterStatus);
+  if(activeFlagFilter) rows = rows.filter(i => i.flags.includes(activeFlagFilter));
+
+  if(dateFilterActive){
+    const from = document.getElementById("dateFrom") ? document.getElementById("dateFrom").value : "";
+    const to = document.getElementById("dateTo") ? document.getElementById("dateTo").value : "";
+    if(from) rows = rows.filter(i => i.invoiceDate >= from);
+    if(to) rows = rows.filter(i => i.invoiceDate <= to);
+  }
+
+  const search = (document.getElementById("queueSearch").value || "").trim().toLowerCase();
+  if(search) rows = rows.filter(i => i.id.toLowerCase().includes(search) || i.vendor.toLowerCase().includes(search));
+
+  document.getElementById("queueSummary").textContent = `${rows.length} invoice${rows.length === 1 ? "" : "s"}`;
+
+  const body = document.getElementById("queueBody");
+  body.innerHTML = "";
+  document.getElementById("queueEmpty").style.display = rows.length ? "none" : "block";
+
+  rows.forEach(inv => {
+    const sm = STATUS_META[inv.status];
+    const flagsHtml = inv.flags.map(f => {
+      const fm = FLAG_META[f];
+      return `<span class="flag-chip"><span class="fdot" style="background:${fm.color}"></span>${fm.label}</span>`;
+    }).join("");
+    const tr = document.createElement("tr");
+    tr.onclick = () => openInvoiceDetail(inv.id);
+    tr.innerHTML = `
+      <td class="inv-num">${inv.id}</td>
+      <td class="vendor-cell">${inv.vendor}</td>
+      <td>${fmtDate(inv.invoiceDate)}</td>
+      <td>${fmtDate(inv.dueDate)}</td>
+      <td class="num amount-cell">${money(inv.amount)}</td>
+      <td><span class="row-status ${sm.cls}">${sm.label}</span></td>
+      <td><div class="flag-chips">${flagsHtml || '<span style="color:var(--text-muted);font-size:11px">—</span>'}</div></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+/* ---------------- INVOICE DETAIL NAVIGATION ---------------- */
+function openInvoiceDetail(id){
+  const inv = invoices.find(i => i.id === id);
+  if(!inv) return;
+
+  document.getElementById("queueScreen").style.display = "none";
+  document.getElementById("detailScreen").style.display = "flex";
+  document.getElementById("backBtn").style.display = "flex";
+  document.getElementById("detailActions").style.display = "flex";
+
+  document.getElementById("pageTitle").textContent = "Invoice Review & Approval";
+  const badge = document.getElementById("pageBadge");
+  const sm = STATUS_META[inv.status];
+  badge.textContent = sm.label;
+  badge.className = "badge review";
+  badge.style.display = "inline-block";
+  if(inv.status === "exception") badge.style.cssText = "display:inline-block;background:var(--red-light);color:var(--red)";
+  else if(inv.status === "processed") badge.style.cssText = "display:inline-block;background:var(--green-light);color:var(--green)";
+  else if(inv.status === "pending") badge.style.cssText = "display:inline-block;background:#eef1f6;color:var(--text-secondary)";
+  else badge.style.cssText = "display:inline-block";
+
+  document.getElementById("dVendor").textContent = inv.vendor;
+  document.getElementById("dVendorId").textContent = inv.vendorId;
+  document.getElementById("dInvoiceNum").textContent = inv.id;
+  document.getElementById("dInvoiceDate").textContent = fmtDate(inv.invoiceDate);
+  document.getElementById("dDueDate").textContent = fmtDate(inv.dueDate);
+  document.getElementById("topTotal").textContent = money(inv.amount) + " USD";
+
+  if(id !== "INV-2025-05678"){
+    showToast(`Showing detail for ${id} — full line-item data is illustrative for this demo invoice`);
+  }
+}
+
+/* ---------------- DATE RANGE FILTER ---------------- */
+function applyDateFilter(){
+  const from = document.getElementById("dateFrom").value;
+  const to = document.getElementById("dateTo").value;
+
+  if(!from && !to){
+    dateFilterActive = false;
+    if(currentView !== "dashboard") renderQueueTable();
+    showToast("Date filter cleared");
+    return;
+  }
+
+  dateFilterActive = true;
+  showQueueView(lastListView === "dashboard" ? "queue" : lastListView);
+  const label = `${from || "any date"} → ${to || "any date"}`;
+  showToast(`Filtering by date: ${label}`);
+}
+
+/* ---------------- TOPBAR ACTIONS ---------------- */
+function createVoucher(){
+  showToast(`Voucher created for ${document.getElementById("dInvoiceNum").textContent}`);
+}
+function closeInvoice(){
+  showToast(`${document.getElementById("dInvoiceNum").textContent} closed`);
+}
+
+/* ---------------- QUICK FILTERS ---------------- */
+function applyQuickFilter(el, flagKey, label){
+  const wasActive = el.classList.contains("active");
+  document.querySelectorAll(".quick-filter").forEach(f => f.classList.remove("active"));
+
+  if(wasActive){
+    activeFlagFilter = null;
+    renderQueueTable();
+    showToast("Filter cleared");
+    return;
+  }
+  el.classList.add("active");
+  activeFlagFilter = flagKey;
+  if(currentView === "dashboard") showQueueView("queue");
+  else renderQueueTable();
+  showToast(`Filtering by: ${label}`);
+}
+
+/* ---------------- DATE RANGE DEFAULTS ---------------- */
+function toISODate(d){
+  return d.toISOString().slice(0, 10);
+}
+function setDefaultDateRange(){
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  document.getElementById("dateTo").value = toISODate(today);
+  document.getElementById("dateFrom").value = toISODate(thirtyDaysAgo);
+}
+
+/* ---------------- INIT ---------------- */
+// Fix: scrolling the mouse wheel over a focused number input changes its
+// value in Chrome/Firefox instead of scrolling the table underneath it.
+// Blurring the input on wheel restores normal scroll behavior.
+document.addEventListener("wheel", function(e){
+  if(e.target.tagName === "INPUT" && e.target.type === "number" && document.activeElement === e.target){
+    e.target.blur();
+  }
+}, {passive:true});
+
+renderLineItems();
+renderCharges();
+renderDocPage();
+setDefaultDateRange();
+showQueueView("dashboard");
+</script>
+
+</body>
+</html>
