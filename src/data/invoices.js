@@ -30,11 +30,3 @@ export const VIEW_META = {
   exceptions: { title: 'Exceptions', filterStatus: 'exception' },
   processed: { title: 'Processed Payment', filterStatus: 'processed' },
 }
-
-export const SUGGESTED_PROMPTS = [
-  'Summarize this invoice',
-  'Check PO match status',
-  'Why is freight flagged?',
-  'Show receipt for line 3',
-  'Show vendor history',
-]

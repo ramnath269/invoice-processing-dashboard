@@ -16,6 +16,8 @@ export function mapLineItemsFromInvoice(invoice) {
       : '—'
     return {
       desc: p.description || p.item || 'Line item',
+      itemNumber: p.item_number || p.supplier_item_number || p.item || '—',
+      erpItemNumber: erpLine?.ItemNumber || null,
       qty: toNumber(p.quantity),
       poQty: erpLine ? toNumber(erpLine.QuantityOrdered) : undefined,
       uom: p.unit_of_measure || erpLine?.UOM || 'EA',

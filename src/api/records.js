@@ -74,6 +74,7 @@ function mapRecord(record) {
     status: mapStatus(pdf.status),
     flags: deriveFlags(record),
     fileUrl: fileUrlFor(record),
+    voucherNumber: pdf.voucher_number || null,
     raw: record,
   }
 }
@@ -90,7 +91,7 @@ export async function fetchInvoiceRecords() {
   return Array.isArray(data) ? data.map(mapRecord) : []
 }
 
-export async function updatePurchaseOrderStatus(invoice, status) {
+export async function updatePurchaseOrderStatus(invoice, status, extraPdfFields = {}) {
   if (!API_BASE) {
     throw new Error('VITE_API_URL is not configured')
   }
@@ -100,7 +101,7 @@ export async function updatePurchaseOrderStatus(invoice, status) {
   }
   const payload = {
     ...record,
-    pdf_fields: { ...record.pdf_fields, status },
+    pdf_fields: { ...record.pdf_fields, status, ...extraPdfFields },
     erp_fields: record.erp_fields,
   }
   const res = await fetch(`${API_BASE}/update-po/${record._id}`, {

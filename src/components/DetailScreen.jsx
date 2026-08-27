@@ -1,10 +1,11 @@
 import DocumentViewer from './DocumentViewer'
 import FormPanel from './FormPanel'
-import AiPanel from './AiPanel'
+import ChatWidget from './ChatWidget'
 import { money, fmtDate } from '../utils/format'
 
 export default function DetailScreen({
   invoice,
+  userId,
   lineItems,
   charges,
   onUpdateLineItem,
@@ -18,7 +19,6 @@ export default function DetailScreen({
   chatPending,
   onChatInputChange,
   onSendChat,
-  onAskPrompt,
 }) {
   return (
     <div id="detailScreen">
@@ -29,6 +29,15 @@ export default function DetailScreen({
           <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{invoice.vendorId}</div>
         </div>
         <div className="info-field"><div className="label">Invoice #</div><div className="value">{invoice.id}</div></div>
+        <div className="info-field">
+          <div className="label">Voucher #</div>
+          <div
+            className={`value${invoice.status === 'processed' ? ' success' : ''}`}
+            style={invoice.status === 'processed' ? undefined : { color: 'var(--text-muted)', fontWeight: 500 }}
+          >
+            {invoice.status === 'processed' ? (invoice.voucherNumber || 'Voucher Created') : 'Voucher not created'}
+          </div>
+        </div>
         <div className="info-field"><div className="label">Invoice Date</div><div className="value">{fmtDate(invoice.invoiceDate)}</div></div>
         <div className="info-field"><div className="label">Due Date</div><div className="value due">{fmtDate(invoice.dueDate)}</div></div>
         <div className="info-field"><div className="label">Total Amount</div><div className="value total">{money(invoice.amount)} USD</div></div>
@@ -49,15 +58,16 @@ export default function DetailScreen({
           onRemoveCharge={onRemoveCharge}
           onAddCharge={onAddCharge}
         />
-        <AiPanel
-          messages={chatMessages}
-          chatInput={chatInput}
-          chatPending={chatPending}
-          onChatInputChange={onChatInputChange}
-          onSend={onSendChat}
-          onAskPrompt={onAskPrompt}
-        />
       </div>
+
+      <ChatWidget
+        userId={userId}
+        messages={chatMessages}
+        chatInput={chatInput}
+        chatPending={chatPending}
+        onChatInputChange={onChatInputChange}
+        onSend={onSendChat}
+      />
     </div>
   )
 }

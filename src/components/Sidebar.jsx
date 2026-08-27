@@ -1,4 +1,13 @@
 import { QUICK_FILTERS } from '../data/invoices'
+import { LogoutIcon } from '../icons/icons'
+
+function initialsFor(name) {
+  const trimmed = (name || '').trim()
+  if (!trimmed) return '?'
+  const parts = trimmed.split(/\s+/)
+  if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return trimmed.slice(0, 2).toUpperCase()
+}
 
 const NAV_ITEMS = [
   {
@@ -74,6 +83,8 @@ export default function Sidebar({
   onApplyDateFilter,
   onAnalyticsClick,
   quickFilterCounts,
+  userId,
+  onLogout,
 }) {
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
@@ -150,12 +161,15 @@ export default function Sidebar({
       </div>
 
       <div className="sidebar-spacer"></div>
-      <div className="sidebar-user" title="Ashok Shetty — AP Manager">
-        <div className="avatar">AS</div>
+      <div className="sidebar-user" title={userId}>
+        <div className="avatar">{initialsFor(userId)}</div>
         <div className="user-text">
-          <div className="uname">Ashok Shetty</div>
+          <div className="uname">{userId}</div>
           <div className="urole">AP Manager</div>
         </div>
+        <button className="logout-btn" onClick={onLogout} title="Sign out">
+          <LogoutIcon />
+        </button>
       </div>
       <button className="collapse-btn" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={onToggleCollapse}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

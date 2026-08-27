@@ -5,10 +5,11 @@ import QueueScreen from './components/QueueScreen'
 import DetailScreen from './components/DetailScreen'
 import ClarificationModal from './components/ClarificationModal'
 import Toast from './components/Toast'
+import LoginPage from './components/LoginPage'
 import { VIEW_META, STATUS_META, QUICK_FILTERS } from './data/invoices'
 import { fetchInvoiceRecords, updatePurchaseOrderStatus } from './api/records'
-import { askDocIQ } from './api/dociq'
-import { buildVoucherPayload, createVoucher } from './api/voucher'
+import { askAssistant } from './api/assistant'
+import { buildVoucherPayload, createVoucher, extractVoucherNumber } from './api/voucher'
 import { mapLineItemsFromInvoice, mapChargesFromInvoice } from './utils/detailMapping'
 import './App.css'
 
@@ -16,7 +17,12 @@ function toISODate(d) {
   return d.toISOString().slice(0, 10)
 }
 
+const AUTH_STORAGE_KEY = 'apSmartFlowUserId'
+const TOKEN_STORAGE_KEY = 'apSmartFlowToken'
+
 export default function App() {
+  const [userId, setUserId] = useState(() => sessionStorage.getItem(AUTH_STORAGE_KEY) || '')
+  const [authToken, setAuthToken] = useState(() => sessionStorage.getItem(TOKEN_STORAGE_KEY) || '')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [currentView, setCurrentView] = useState('dashboard')
   const [lastListView, setLastListView] = useState('dashboard')
@@ -38,6 +44,7 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState([])
   const [chatInput, setChatInput] = useState('')
   const [chatPending, setChatPending] = useState(false)
+  const [conversationId, setConversationId] = useState(null)
 
   const [clarifyOpen, setClarifyOpen] = useState(false)
   const [clarifyEmail, setClarifyEmail] = useState('ap@abcsupplies.com')
@@ -95,6 +102,20 @@ export default function App() {
     setToastShow(true)
     clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToastShow(false), 3200)
+  }
+
+  function handleLogin({ userId: id, token }) {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, id)
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, token)
+    setUserId(id)
+    setAuthToken(token)
+  }
+
+  function handleLogout() {
+    sessionStorage.removeItem(AUTH_STORAGE_KEY)
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+    setUserId('')
+    setAuthToken('')
   }
 
   function showQueueView(view) {
@@ -184,7 +205,7 @@ export default function App() {
     setLineItems((items) => items.filter((_, idx) => idx !== i))
   }
   function addLineItem() {
-    setLineItems((items) => [...items, { desc: 'New Item', qty: 1, poQty: 1, uom: 'EA', price: 0, poPrice: 0, po: '—' }])
+    setLineItems((items) => [...items, { desc: 'New Item', itemNumber: '—', qty: 1, poQty: 1, uom: 'EA', price: 0, poPrice: 0, po: '—' }])
   }
 
   function updateCharge(i, field, value) {
@@ -209,8 +230,9 @@ export default function App() {
     setChatInput('')
     setChatPending(true)
     try {
-      const { answer, sources } = await askDocIQ(trimmed)
-      setChatMessages((msgs) => [...msgs, { role: 'bot', text: answer, sources }])
+      const { answer, conversationId: nextConversationId } = await askAssistant(trimmed, authToken, conversationId)
+      if (nextConversationId) setConversationId(nextConversationId)
+      setChatMessages((msgs) => [...msgs, { role: 'bot', text: answer }])
     } catch {
       setChatMessages((msgs) => [
         ...msgs,
@@ -226,11 +248,13 @@ export default function App() {
     setVoucherPending(true)
     try {
       const payload = buildVoucherPayload(selectedInvoice)
-      await createVoucher(payload)
+      const response = await createVoucher(payload)
+      const voucherNumber = extractVoucherNumber(response)
+      const extraPdfFields = voucherNumber ? { voucher_number: voucherNumber } : {}
 
       let statusSaved = true
       try {
-        await updatePurchaseOrderStatus(selectedInvoice, 'VOUCHER_CREATED')
+        await updatePurchaseOrderStatus(selectedInvoice, 'VOUCHER_CREATED', extraPdfFields)
       } catch {
         statusSaved = false
       }
@@ -238,7 +262,12 @@ export default function App() {
       setInvoices((items) =>
         items.map((i) =>
           i.id === selectedInvoice.id
-            ? { ...i, status: 'processed', raw: { ...i.raw, pdf_fields: { ...i.raw.pdf_fields, status: 'VOUCHER_CREATED' } } }
+            ? {
+                ...i,
+                status: 'processed',
+                voucherNumber: voucherNumber || i.voucherNumber,
+                raw: { ...i.raw, pdf_fields: { ...i.raw.pdf_fields, status: 'VOUCHER_CREATED', ...extraPdfFields } },
+              }
             : i,
         ),
       )
@@ -280,6 +309,10 @@ export default function App() {
   const pageTitle = selectedInvoice ? 'Invoice Review & Approval' : VIEW_META[currentView].title
   const badge = selectedInvoice ? { label: STATUS_META[selectedInvoice.status].label, status: selectedInvoice.status } : null
 
+  if (!userId) {
+    return <LoginPage onLogin={handleLogin} />
+  }
+
   return (
     <div className="app">
       <Sidebar
@@ -297,6 +330,8 @@ export default function App() {
         onApplyDateFilter={applyDateFilter}
         onAnalyticsClick={() => showToast('Analytics is not part of this prototype yet')}
         quickFilterCounts={quickFilterCounts}
+        userId={userId}
+        onLogout={handleLogout}
       />
 
       <div className="main">
@@ -316,6 +351,7 @@ export default function App() {
         {selectedInvoice ? (
           <DetailScreen
             invoice={selectedInvoice}
+            userId={userId}
             lineItems={lineItems}
             charges={charges}
             onUpdateLineItem={updateLineItem}
@@ -329,7 +365,6 @@ export default function App() {
             chatPending={chatPending}
             onChatInputChange={setChatInput}
             onSendChat={() => sendMessage(chatInput)}
-            onAskPrompt={sendMessage}
           />
         ) : (
           <QueueScreen

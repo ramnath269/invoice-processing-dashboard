@@ -54,3 +54,20 @@ export async function createVoucher(payload) {
   }
   return res.json()
 }
+
+// The exact shape of the orchestrator's success response hasn't been confirmed against
+// a live call — this checks the field names JDE's F0411 (voucher ledger) convention would
+// suggest ("DocumentNumber" is the confirmed column there). Update this list if the real
+// response uses a different key.
+const VOUCHER_NUMBER_KEYS = ['DocumentNumber', 'documentNumber', 'VoucherNumber', 'voucherNumber', 'DocNumber', 'docNumber']
+
+export function extractVoucherNumber(response) {
+  if (!response) return null
+  if (Array.isArray(response)) return extractVoucherNumber(response[0])
+  if (typeof response !== 'object') return null
+  for (const key of VOUCHER_NUMBER_KEYS) {
+    if (response[key] != null && response[key] !== '') return String(response[key])
+  }
+  if (response.data) return extractVoucherNumber(response.data)
+  return null
+}

@@ -14,6 +14,7 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
           <thead>
             <tr>
               <th style={{ width: '20px' }}>#</th>
+              <th style={{ width: '100px' }}>Item Number</th>
               <th>Description</th>
               <th className="num" style={{ width: '54px' }}>Qty</th>
               <th className="num" style={{ width: '80px' }}>Price</th>
@@ -30,9 +31,18 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
               const priceMatched = !hasPoPrice || Math.abs(item.price - item.poPrice) < 0.005
               const qtyMatched = !hasPoQty || item.qty === item.poQty
               const matched = priceMatched && qtyMatched
+              const itemNumberMatched = item.erpItemNumber && String(item.erpItemNumber) === String(item.itemNumber)
               return (
                 <tr key={i}>
                   <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
+                  <td style={{ color: 'var(--text-secondary)' }}>
+                    {item.itemNumber}
+                    {item.erpItemNumber ? (
+                      <span className={`erp-mini left ${itemNumberMatched ? 'match' : 'mismatch'}`}>ERP {item.erpItemNumber}</span>
+                    ) : (
+                      <span className="erp-mini left unavailable">Item number not available</span>
+                    )}
+                  </td>
                   <td className="desc">{item.desc}<span className="sub">{item.po}</span></td>
                   <td className="num">
                     <input
