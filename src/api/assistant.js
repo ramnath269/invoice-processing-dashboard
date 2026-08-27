@@ -18,7 +18,9 @@ export async function askAssistant(prompt, token, conversationId) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     const detail = typeof data.detail === 'string' ? data.detail : Array.isArray(data.detail) ? data.detail[0]?.msg : null
-    throw new Error(detail || `Assistant request failed (${res.status})`)
+    const err = new Error(detail || `Assistant request failed (${res.status})`)
+    err.status = res.status
+    throw err
   }
   return {
     answer: data.response || "I couldn't find an answer to that.",

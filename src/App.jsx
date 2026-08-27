@@ -11,6 +11,7 @@ import { fetchInvoiceRecords, updatePurchaseOrderStatus } from './api/records'
 import { askAssistant } from './api/assistant'
 import { buildVoucherPayload, createVoucher, extractVoucherNumber } from './api/voucher'
 import { mapLineItemsFromInvoice, mapChargesFromInvoice } from './utils/detailMapping'
+import { buildInvoiceContextPrompt } from './utils/chatContext'
 import './App.css'
 
 function toISODate(d) {
@@ -23,6 +24,7 @@ const TOKEN_STORAGE_KEY = 'apSmartFlowToken'
 export default function App() {
   const [userId, setUserId] = useState(() => sessionStorage.getItem(AUTH_STORAGE_KEY) || '')
   const [authToken, setAuthToken] = useState(() => sessionStorage.getItem(TOKEN_STORAGE_KEY) || '')
+  const [sessionExpired, setSessionExpired] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [currentView, setCurrentView] = useState('dashboard')
   const [lastListView, setLastListView] = useState('dashboard')
@@ -109,6 +111,7 @@ export default function App() {
     sessionStorage.setItem(TOKEN_STORAGE_KEY, token)
     setUserId(id)
     setAuthToken(token)
+    setSessionExpired(false)
   }
 
   function handleLogout() {
@@ -230,10 +233,16 @@ export default function App() {
     setChatInput('')
     setChatPending(true)
     try {
-      const { answer, conversationId: nextConversationId } = await askAssistant(trimmed, authToken, conversationId)
+      const promptWithContext = buildInvoiceContextPrompt(selectedInvoice, trimmed)
+      const { answer, conversationId: nextConversationId } = await askAssistant(promptWithContext, authToken, conversationId)
       if (nextConversationId) setConversationId(nextConversationId)
       setChatMessages((msgs) => [...msgs, { role: 'bot', text: answer }])
-    } catch {
+    } catch (err) {
+      if (err.status === 401) {
+        setSessionExpired(true)
+        handleLogout()
+        return
+      }
       setChatMessages((msgs) => [
         ...msgs,
         { role: 'bot', text: "Sorry, I couldn't reach the AI assistant right now. Please try again." },
@@ -310,7 +319,7 @@ export default function App() {
   const badge = selectedInvoice ? { label: STATUS_META[selectedInvoice.status].label, status: selectedInvoice.status } : null
 
   if (!userId) {
-    return <LoginPage onLogin={handleLogin} />
+    return <LoginPage onLogin={handleLogin} sessionExpired={sessionExpired} />
   }
 
   return (

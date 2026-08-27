@@ -4,7 +4,7 @@ import { login } from '../api/auth'
 
 const ENVIRONMENT_STORAGE_KEY = 'apSmartFlowEnvironment'
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, sessionExpired }) {
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
   const [environment, setEnvironment] = useState(() => localStorage.getItem(ENVIRONMENT_STORAGE_KEY) || '')
@@ -51,6 +51,10 @@ export default function LoginPage({ onLogin }) {
         <div className="login-card">
           <h1>Sign In</h1>
           <p className="login-card-sub">Enter your credentials to continue</p>
+
+          {sessionExpired && (
+            <div className="login-notice">Your session has expired. Please sign in again.</div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <div className="field">
