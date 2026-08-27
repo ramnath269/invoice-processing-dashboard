@@ -31,6 +31,9 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
               const priceMatched = !hasPoPrice || Math.abs(item.price - item.poPrice) < 0.005
               const qtyMatched = !hasPoQty || item.qty === item.poQty
               const matched = priceMatched && qtyMatched
+              const hasPoAmount = hasPoPrice && hasPoQty
+              const poAmount = hasPoAmount ? item.poQty * item.poPrice : undefined
+              const amountMatched = !hasPoAmount || Math.abs(amount - poAmount) < 0.005
               const itemNumberMatched = item.erpItemNumber && String(item.erpItemNumber) === String(item.itemNumber)
               return (
                 <tr key={i}>
@@ -66,7 +69,12 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
                       <span className={`erp-mini ${priceMatched ? 'match' : 'mismatch'}`}>ERP {money(item.poPrice)}</span>
                     )}
                   </td>
-                  <td className="num" style={{ fontWeight: 600 }}>{money(amount)}</td>
+                  <td className="num">
+                    <span className="amount-value">{money(amount)}</span>
+                    {hasPoAmount && (
+                      <span className={`erp-mini ${amountMatched ? 'match' : 'mismatch'}`}>ERP {money(poAmount)}</span>
+                    )}
+                  </td>
                   <td className="center">
                     <span className={`status-pill ${matched ? 'matched' : 'review'}`}>
                       {matched ? <CheckIcon /> : <WarnIcon />}

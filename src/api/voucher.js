@@ -30,8 +30,8 @@ export function buildVoucherPayload(invoice) {
   })
 
   return {
-    username: 'ELAN',
-    password: 'HelloWorld',
+    username: 'ORCHSVC',
+    password: 'fHs2O$j0',
     OrderNumber: erp.OrderNumber,
     TotalAmountPaid: pdf.total_amount_due,
     CustomerInvoiceNo: pdf.invoice_number,

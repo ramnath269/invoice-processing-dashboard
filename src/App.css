@@ -341,6 +341,9 @@ table.line-table input{
 table.line-table input:hover{border-color:var(--border);}
 table.line-table input:focus{outline:none;border-color:var(--blue);background:#fff;}
 table.line-table input.account-input{font-size:12px;min-width:150px;}
+table.line-table .amount-value{
+  display:block;border:1px solid transparent;padding:4px 5px;font-weight:600;
+}
 .erp-mini{display:block;font-size:11px;margin-top:2px;font-weight:600;text-align:right;white-space:nowrap;}
 .erp-mini.match{color:var(--text-muted);font-weight:500;}
 .erp-mini.mismatch{color:var(--amber);}
