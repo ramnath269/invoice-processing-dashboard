@@ -16,9 +16,9 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
               <th style={{ width: '20px' }}>#</th>
               <th style={{ width: '100px' }}>Item Number</th>
               <th>Description</th>
-              <th className="num" style={{ width: '54px' }}>Qty</th>
-              <th className="num" style={{ width: '80px' }}>Price</th>
-              <th className="num" style={{ width: '76px' }}>Amount</th>
+              <th className="num" style={{ width: '1%' }}>Qty</th>
+              <th className="num" style={{ width: '1%' }}>Price</th>
+              <th className="num" style={{ width: '1%' }}>Amount</th>
               <th className="center" style={{ width: '36px' }}>Status</th>
               <th style={{ width: '24px' }}></th>
             </tr>
@@ -35,13 +35,19 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
               const poAmount = hasPoAmount ? item.poQty * item.poPrice : undefined
               const amountMatched = !hasPoAmount || Math.abs(amount - poAmount) < 0.005
               const itemNumberMatched = item.erpItemNumber && String(item.erpItemNumber) === String(item.itemNumber)
+              // JDE returns a zero qty/price placeholder row (rather than omitting it) when it
+              // couldn't actually resolve this line's item - e.g. "Unable to fetch Order/Item
+              // information" - so any erpItemNumber attached to one of those isn't a real match
+              // and showing it would be misleading.
+              const hasUnresolvedErpLine = item.poQty === 0 && item.poPrice === 0
+              const hasReliableErpItemNumber = item.erpItemNumber && !hasUnresolvedErpLine
               return (
                 <tr key={i}>
                   <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>
                     {item.itemNumber}
-                    {item.erpItemNumber ? (
-                      <span className={`erp-mini left ${itemNumberMatched ? 'match' : 'mismatch'}`}>ERP {item.erpItemNumber}</span>
+                    {hasReliableErpItemNumber ? (
+                      <span className={`erp-mini left ${itemNumberMatched ? 'match' : 'mismatch'}`}>JDE {item.erpItemNumber}</span>
                     ) : (
                       <span className="erp-mini left unavailable">Item number not available</span>
                     )}
@@ -50,29 +56,33 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
                   <td className="num">
                     <input
                       type="number"
+                      className="fit-input"
                       value={item.qty}
                       step="1"
+                      size={Math.max(2, String(item.qty).length)}
                       onChange={(e) => onUpdate(i, 'qty', e.target.value)}
                     />
                     {hasPoQty && (
-                      <span className={`erp-mini ${qtyMatched ? 'match' : 'mismatch'}`}>ERP {item.poQty}</span>
+                      <span className={`erp-mini ${qtyMatched ? 'match' : 'mismatch'}`}>JDE {item.poQty}</span>
                     )}
                   </td>
                   <td className="num">
                     <input
                       type="number"
+                      className="fit-input"
                       value={item.price}
                       step="0.01"
+                      size={Math.max(4, String(item.price).length)}
                       onChange={(e) => onUpdate(i, 'price', e.target.value)}
                     />
                     {hasPoPrice && (
-                      <span className={`erp-mini ${priceMatched ? 'match' : 'mismatch'}`}>ERP {money(item.poPrice)}</span>
+                      <span className={`erp-mini ${priceMatched ? 'match' : 'mismatch'}`}>JDE {money(item.poPrice)}</span>
                     )}
                   </td>
                   <td className="num">
                     <span className="amount-value">{money(amount)}</span>
                     {hasPoAmount && (
-                      <span className={`erp-mini ${amountMatched ? 'match' : 'mismatch'}`}>ERP {money(poAmount)}</span>
+                      <span className={`erp-mini ${amountMatched ? 'match' : 'mismatch'}`}>JDE {money(poAmount)}</span>
                     )}
                   </td>
                   <td className="center">
