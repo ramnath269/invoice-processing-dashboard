@@ -8,22 +8,32 @@ export function mapLineItemsFromInvoice(invoice) {
   if (!raw) return []
   const pdfProducts = raw.pdf_fields?.products || []
   const erpRows = raw.erp_fields?.['55_DREQ_PO_ReceiptFile_Inquiry_V2']?.rowset || []
+  const itemSuggestions = raw.item_suggestions || []
 
   return pdfProducts.map((p, i) => {
     const erpLine = erpRows[i]
+    const poQty = erpLine ? toNumber(erpLine.QuantityOrdered) : undefined
+    const poPrice = erpLine ? toNumber(erpLine.UnitPrice) : undefined
+    // A receipt row with zero quantity and zero price isn't a real ERP match —
+    // it's a placeholder row, so the item number it carries shouldn't be trusted either.
+    const erpLineIsEmpty = erpLine && poQty === 0 && poPrice === 0
+    const suggestion = itemSuggestions.find((s) => s.line_index === i) || null
     const po = p.purchase_order_number
       ? `PO ${p.purchase_order_number}${p.line_number ? ` / L${p.line_number}` : ''}`
       : '—'
     return {
       desc: p.description || p.item || 'Line item',
       itemNumber: p.item_number || p.supplier_item_number || p.item || '—',
-      erpItemNumber: erpLine?.ItemNumber || null,
+      erpItemNumber: erpLineIsEmpty ? null : erpLine?.ItemNumber || null,
       qty: toNumber(p.quantity),
-      poQty: erpLine ? toNumber(erpLine.QuantityOrdered) : undefined,
+      poQty,
       uom: p.unit_of_measure || erpLine?.UOM || 'EA',
       price: toNumber(p.unit_price),
-      poPrice: erpLine ? toNumber(erpLine.UnitPrice) : undefined,
+      poPrice,
       po,
+      suggestedItemNumber:
+        suggestion && (!suggestion.status || suggestion.status === 'pending') ? suggestion.suggested_jde_item_number : null,
+      suggestionMatchBasis: suggestion?.match_basis || null,
     }
   })
 }

@@ -29,7 +29,7 @@ export default function ChargesCard({ charges, onUpdate, onRemove, onAdd }) {
               return (
                 <tr key={i}>
                   <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
-                  <td className="desc">{c.type}<span className="sub">{c.desc} · {c.allocate}</span></td>
+                  <td className="desc"><span className="cell-value">{c.type}</span><span className="sub">{c.desc} · {c.allocate}</span></td>
                   <td className="num">
                     <input
                       type="number"
@@ -54,9 +54,11 @@ export default function ChargesCard({ charges, onUpdate, onRemove, onAdd }) {
                     </span>
                   </td>
                   <td>
-                    <button className="icon-btn" title="Delete" onClick={() => onRemove(i)}>
-                      <TrashIcon />
-                    </button>
+                    <div className="row-actions">
+                      <button className="icon-btn" title="Delete" onClick={() => onRemove(i)}>
+                        <TrashIcon />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )

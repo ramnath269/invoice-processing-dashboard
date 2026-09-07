@@ -31,7 +31,7 @@ export default function HeaderCard({ invoice }) {
         <div className="field">
           <label>Invoice Number <span className="req">*</span></label>
           <div className="input-wrap">
-            <input key={invoice.id} defaultValue={pdf.invoice_number || invoice.id} />
+            <input className="mono" key={invoice.id} defaultValue={pdf.invoice_number || invoice.id} />
             <CheckIcon className="check" />
           </div>
           <ErpCompare erpValue={erp.VendorInvoiceNo} matches={fieldsMatch(pdf.invoice_number, erp.VendorInvoiceNo)} />
@@ -48,7 +48,7 @@ export default function HeaderCard({ invoice }) {
         <div className="field">
           <label>PO References</label>
           <div className="input-wrap">
-            <input key={invoice.id} defaultValue={pdf.purchase_order || ''} />
+            <input className="mono" key={invoice.id} defaultValue={pdf.purchase_order || ''} />
             <CheckIcon className="check" />
           </div>
           <ErpCompare erpValue={erpOrderNumber} matches={fieldsMatch(pdf.purchase_order, erpOrderNumber)} />
@@ -73,7 +73,7 @@ export default function HeaderCard({ invoice }) {
           </div>
         </div>
 
-        <div className="field">
+        <div className="field full">
           <label>Vendor <span className="req">*</span></label>
           <div className="input-wrap">
             <input key={invoice.id} defaultValue={pdf.vendor || invoice.vendor} />
@@ -84,7 +84,7 @@ export default function HeaderCard({ invoice }) {
         <div className="field">
           <label>Vendor ID</label>
           <div className="input-wrap">
-            <input key={invoice.id} defaultValue={invoice.vendorId} readOnly />
+            <input className="mono" key={invoice.id} defaultValue={invoice.vendorId} readOnly />
           </div>
         </div>
         <div className="field">
@@ -98,7 +98,7 @@ export default function HeaderCard({ invoice }) {
           </div>
         </div>
 
-        <div className="field">
+        <div className="field full">
           <label>Notes</label>
           <div className="input-wrap"><input placeholder="Enter header notes..." /></div>
         </div>

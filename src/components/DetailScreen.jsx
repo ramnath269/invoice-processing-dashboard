@@ -28,19 +28,19 @@ export default function DetailScreen({
           <div className="value link">{invoice.vendor}</div>
           <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{invoice.vendorId}</div>
         </div>
-        <div className="info-field"><div className="label">Invoice #</div><div className="value">{invoice.id}</div></div>
+        <div className="info-field"><div className="label">Invoice #</div><div className="value mono">{invoice.id}</div></div>
         <div className="info-field">
           <div className="label">Voucher #</div>
           <div
-            className={`value${invoice.status === 'processed' ? ' success' : ''}`}
+            className={`value mono${invoice.status === 'processed' ? ' success' : ''}`}
             style={invoice.status === 'processed' ? undefined : { color: 'var(--text-muted)', fontWeight: 500 }}
           >
             {invoice.status === 'processed' ? (invoice.voucherNumber || 'Voucher Created') : 'Voucher not created'}
           </div>
         </div>
-        <div className="info-field"><div className="label">Invoice Date</div><div className="value">{fmtDate(invoice.invoiceDate)}</div></div>
-        <div className="info-field"><div className="label">Due Date</div><div className="value due">{fmtDate(invoice.dueDate)}</div></div>
-        <div className="info-field"><div className="label">Total Amount</div><div className="value total">{money(invoice.amount)} USD</div></div>
+        <div className="info-field"><div className="label">Invoice Date</div><div className="value mono">{fmtDate(invoice.invoiceDate)}</div></div>
+        <div className="info-field"><div className="label">Due Date</div><div className="value mono">{fmtDate(invoice.dueDate)}</div></div>
+        <div className="info-field"><div className="label">Total Amount</div><div className="value mono total">{money(invoice.amount)} USD</div></div>
         <div className="info-field"><div className="label">Document Type</div><div className="value">Invoice</div></div>
         <div className="info-field"><div className="label">Payment Terms</div><div className="value">Net 30</div></div>
       </div>

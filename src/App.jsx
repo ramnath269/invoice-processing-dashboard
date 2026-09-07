@@ -202,7 +202,10 @@ export default function App() {
   }
 
   function updateLineItem(i, field, value) {
-    setLineItems((items) => items.map((it, idx) => (idx === i ? { ...it, [field]: parseFloat(value) || 0 } : it)))
+    const numericField = field === 'qty' || field === 'price'
+    setLineItems((items) =>
+      items.map((it, idx) => (idx === i ? { ...it, [field]: numericField ? parseFloat(value) || 0 : value } : it)),
+    )
   }
   function removeLineItem(i) {
     setLineItems((items) => items.filter((_, idx) => idx !== i))

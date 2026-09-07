@@ -1,4 +1,4 @@
-import { SendIcon, SparkleIcon, ChevronDownIcon } from '../icons/icons'
+import { SendIcon, SparkleIcon, CloseIcon } from '../icons/icons'
 import { parseMessageContent, parseInline } from '../utils/chatMarkdown'
 
 function Inline({ text }) {
@@ -39,8 +39,8 @@ export default function AiPanel({ userId, messages, chatInput, chatPending, onCh
         </div>
         <div className="ai-title">AI Assistant</div>
         <div className="spacer"></div>
-        <button className="icon-btn" onClick={onMinimize} title="Minimize">
-          <ChevronDownIcon />
+        <button className="icon-btn" onClick={onMinimize} title="Close">
+          <CloseIcon />
         </button>
       </div>
       <div className="ai-chat">
