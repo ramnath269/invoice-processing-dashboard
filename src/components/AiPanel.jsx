@@ -1,4 +1,5 @@
-import { SendIcon, SparkleIcon, CloseIcon } from '../icons/icons'
+import { useEffect, useRef } from 'react'
+import { SendIcon, SparkleIcon, ChevronDownIcon } from '../icons/icons'
 import { parseMessageContent, parseInline } from '../utils/chatMarkdown'
 
 function Inline({ text }) {
@@ -31,6 +32,13 @@ function MessageContent({ segments }) {
 }
 
 export default function AiPanel({ userId, messages, chatInput, chatPending, onChatInputChange, onSend, onMinimize }) {
+  const chatRef = useRef(null)
+
+  useEffect(() => {
+    const el = chatRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages, chatPending])
+
   return (
     <div className="ai-panel">
       <div className="ai-head">
@@ -40,10 +48,10 @@ export default function AiPanel({ userId, messages, chatInput, chatPending, onCh
         <div className="ai-title">AI Assistant</div>
         <div className="spacer"></div>
         <button className="icon-btn" onClick={onMinimize} title="Close">
-          <CloseIcon />
+          <ChevronDownIcon />
         </button>
       </div>
-      <div className="ai-chat">
+      <div className="ai-chat" ref={chatRef}>
         <div className="msg bot">Hi {userId}, I'm your AP AI Assistant. How can I help you with this invoice?</div>
         {messages.map((m, i) => {
           if (m.role !== 'bot') {

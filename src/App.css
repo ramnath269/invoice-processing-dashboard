@@ -321,7 +321,7 @@ table.line-table thead th{
   position:sticky;top:0;background:var(--surface-alt);text-align:left;font-size:12px;font-weight:600;
   color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 10px;border-bottom:1px solid var(--border);z-index:1;
 }
-table.line-table th.num, table.line-table td.num{text-align:right;}
+table.line-table th.num, table.line-table td.num{text-align:right;white-space:nowrap;}
 table.line-table th.center, table.line-table td.center{text-align:center;}
 table.line-table tbody td{padding:10px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
 table.line-table tbody tr:hover{background:var(--surface-alt);}

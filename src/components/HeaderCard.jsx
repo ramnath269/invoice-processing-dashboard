@@ -5,7 +5,7 @@ function ErpCompare({ erpValue, matches }) {
   return (
     <div className={`erp-compare ${matches ? 'match' : 'mismatch'}`}>
       {matches ? <CheckIcon /> : <WarnIcon />}
-      ERP: {erpValue}
+      JDE: {erpValue}
     </div>
   )
 }
@@ -24,7 +24,7 @@ export default function HeaderCard({ invoice }) {
       <div className="card-head">
         <h2>Header Information</h2>
         <div className="spacer"></div>
-        <span className="erp-legend"><span className="dotlegend erp"></span>ERP value shown below each field</span>
+        <span className="erp-legend"><span className="dotlegend erp"></span>JDE value shown below each field</span>
         <button className="link-btn"><EditIcon />Edit</button>
       </div>
       <div className="field-grid">

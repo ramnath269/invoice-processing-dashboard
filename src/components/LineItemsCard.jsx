@@ -31,9 +31,9 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
               <th style={{ width: '20px' }}>#</th>
               <th style={{ width: '100px' }}>Item Number</th>
               <th>Description</th>
-              <th className="num" style={{ width: '54px' }}>Qty</th>
-              <th className="num" style={{ width: '80px' }}>Price</th>
-              <th className="num" style={{ width: '76px' }}>Amount</th>
+              <th className="num" style={{ width: '1%' }}>Qty</th>
+              <th className="num" style={{ width: '1%' }}>Price</th>
+              <th className="num" style={{ width: '1%' }}>Amount</th>
               <th className="center" style={{ width: '36px' }}>Status</th>
               <th style={{ width: '24px' }}></th>
             </tr>

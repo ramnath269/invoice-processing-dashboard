@@ -37,7 +37,7 @@ export default function ChargesCard({ charges, onUpdate, onRemove, onAdd }) {
                       step="0.01"
                       onChange={(e) => onUpdate(i, 'inv', e.target.value)}
                     />
-                    <span className={`erp-mini ${flagged ? 'mismatch' : 'match'}`}>ERP {money(c.po)}</span>
+                    <span className={`erp-mini ${flagged ? 'mismatch' : 'match'}`}>JDE {money(c.po)}</span>
                   </td>
                   <td className={`num variance ${flagged ? 'flag' : 'ok'}`}>{flagged ? money(variance) : '0.00'}</td>
                   <td>
