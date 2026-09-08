@@ -7,10 +7,10 @@ import ClarificationModal from './components/ClarificationModal'
 import Toast from './components/Toast'
 import LoginPage from './components/LoginPage'
 import { VIEW_META, STATUS_META, QUICK_FILTERS } from './data/invoices'
-import { fetchInvoiceRecords, updatePurchaseOrderStatus } from './api/records'
+import { fetchInvoiceRecords, updatePurchaseOrderStatus, saveItemCrossref } from './api/records'
 import { askAssistant } from './api/assistant'
 import { buildVoucherPayload, createVoucher, extractVoucherNumber } from './api/voucher'
-import { mapLineItemsFromInvoice, mapChargesFromInvoice } from './utils/detailMapping'
+import { mapLineItemsFromInvoice, mapChargesFromInvoice, isItemNumberResolved } from './utils/detailMapping'
 import { buildInvoiceContextPrompt } from './utils/chatContext'
 import './App.css'
 
@@ -207,12 +207,6 @@ export default function App() {
       items.map((it, idx) => (idx === i ? { ...it, [field]: numericField ? parseFloat(value) || 0 : value } : it)),
     )
   }
-  function removeLineItem(i) {
-    setLineItems((items) => items.filter((_, idx) => idx !== i))
-  }
-  function addLineItem() {
-    setLineItems((items) => [...items, { desc: 'New Item', itemNumber: '—', qty: 1, poQty: 1, uom: 'EA', price: 0, poPrice: 0, po: '—' }])
-  }
 
   function updateCharge(i, field, value) {
     setCharges((items) =>
@@ -256,10 +250,10 @@ export default function App() {
   }
 
   async function handleCreateVoucher() {
-    if (!selectedInvoice || voucherPending || selectedInvoice.status === 'processed') return
+    if (!selectedInvoice || voucherPending || selectedInvoice.status === 'processed' || hasMissingItemNumbers) return
     setVoucherPending(true)
     try {
-      const payload = buildVoucherPayload(selectedInvoice)
+      const payload = buildVoucherPayload(selectedInvoice, lineItems)
       const response = await createVoucher(payload)
       const voucherNumber = extractVoucherNumber(response)
       const extraPdfFields = voucherNumber ? { voucher_number: voucherNumber } : {}
@@ -269,6 +263,28 @@ export default function App() {
         await updatePurchaseOrderStatus(selectedInvoice, 'VOUCHER_CREATED', extraPdfFields)
       } catch {
         statusSaved = false
+      }
+
+      // Only line items the user actually resolved via a suggested match carry a
+      // crossref pair — persist those so the same supplier/item combo auto-resolves
+      // next time. This runs after voucher creation succeeds, per the given rule.
+      const confirmedMatches = lineItems.filter((item) => item.crossrefSupplierItemNumber && item.crossrefAssignedItemNumber)
+      let crossrefSaved = true
+      if (confirmedMatches.length > 0) {
+        try {
+          await Promise.all(
+            confirmedMatches.map((item) =>
+              saveItemCrossref({
+                supplierNumber: Number(selectedInvoice.vendorId),
+                itemNumber: item.crossrefSupplierItemNumber,
+                assignedItemNumber: item.crossrefAssignedItemNumber,
+                confirmedBy: userId,
+              }),
+            ),
+          )
+        } catch {
+          crossrefSaved = false
+        }
       }
 
       setInvoices((items) =>
@@ -284,10 +300,14 @@ export default function App() {
         ),
       )
 
+      const warnings = []
+      if (!statusSaved) warnings.push('status sync failed')
+      if (!crossrefSaved) warnings.push('item cross-reference sync failed')
+
       showToast(
-        statusSaved
+        warnings.length === 0
           ? `Voucher created for ${selectedInvoice.id}`
-          : `Voucher created for ${selectedInvoice.id}, but status sync failed — a refresh may show it as unprocessed`,
+          : `Voucher created for ${selectedInvoice.id}, but ${warnings.join(' and ')} — a refresh may show stale data`,
       )
     } catch (err) {
       showToast(err.message || 'Failed to create voucher')
@@ -320,6 +340,7 @@ export default function App() {
 
   const pageTitle = selectedInvoice ? 'Invoice Review & Approval' : VIEW_META[currentView].title
   const badge = selectedInvoice ? { label: STATUS_META[selectedInvoice.status].label, status: selectedInvoice.status } : null
+  const hasMissingItemNumbers = lineItems.some((item) => !isItemNumberResolved(item))
 
   if (!userId) {
     return <LoginPage onLogin={handleLogin} sessionExpired={sessionExpired} />
@@ -357,6 +378,7 @@ export default function App() {
           onCreateVoucher={handleCreateVoucher}
           voucherPending={voucherPending}
           voucherCreated={selectedInvoice?.status === 'processed'}
+          missingItemNumbers={hasMissingItemNumbers}
           onCloseInvoice={() => showToast(`${selectedInvoice.id} closed`)}
         />
 
@@ -367,8 +389,6 @@ export default function App() {
             lineItems={lineItems}
             charges={charges}
             onUpdateLineItem={updateLineItem}
-            onRemoveLineItem={removeLineItem}
-            onAddLineItem={addLineItem}
             onUpdateCharge={updateCharge}
             onRemoveCharge={removeCharge}
             onAddCharge={addCharge}

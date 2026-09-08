@@ -2,18 +2,24 @@ const VOUCHER_URL = import.meta.env.VITE_VOUCHER_CREATION_URL
 
 const NON_STOCK_FIELDS = ['total_freight', 'handling_fee']
 
-export function buildVoucherPayload(invoice) {
+export function buildVoucherPayload(invoice, lineItems = []) {
   const record = invoice.raw || {}
   const pdf = record.pdf_fields || {}
   const erp = record.erp_fields || {}
-  const erpLines = erp['55_DREQ_PO_ReceiptFile_Inquiry_V2']?.rowset || []
 
-  const items = erpLines.map((line) => ({
-    ItemNumber: line.ItemNumber,
-    Quantity: line.QuantityOrdered,
-    UnitOfMeasure: line.UOM,
-    AmountPaid: line.NetAmount,
-  }))
+  // Build from the line items as currently edited in the UI, not the raw ERP receipt
+  // rows — those can still carry placeholder 0 quantity/price that the user has since
+  // corrected, either by hand or by confirming a suggested JDE item match.
+  const items = lineItems.map((item) => {
+    const quantity = item.poQty ?? item.qty ?? 0
+    const unitPrice = item.poPrice ?? item.price ?? 0
+    return {
+      ItemNumber: item.erpItemNumber || item.itemNumber,
+      Quantity: quantity,
+      UnitOfMeasure: item.uom,
+      AmountPaid: quantity * unitPrice,
+    }
+  })
 
   NON_STOCK_FIELDS.forEach((field) => {
     const charge = pdf[field]

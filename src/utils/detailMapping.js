@@ -3,6 +3,28 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0
 }
 
+// erpItemNumber can be populated even on a placeholder JDE receipt row, so it isn't
+// trustworthy by itself — a real ERP match requires quantity and price to also be
+// present and non-zero. This is the single source of truth for that check; both the
+// line-items table and the Create Voucher gate must agree on it.
+export function hasErpItemInfo(item) {
+  return (
+    !!item.erpItemNumber &&
+    typeof item.poQty === 'number' &&
+    typeof item.poPrice === 'number' &&
+    item.poQty !== 0 &&
+    item.poPrice !== 0
+  )
+}
+
+// A line's item number counts as resolved either when the ERP receipt data backs it
+// up (hasErpItemInfo), or when the user has manually confirmed a suggested JDE item
+// number via "Use this match" — that's a deliberate human decision and shouldn't be
+// overridden by the receipt line still showing placeholder zeros.
+export function isItemNumberResolved(item) {
+  return hasErpItemInfo(item) || !!item.itemNumberConfirmed
+}
+
 export function mapLineItemsFromInvoice(invoice) {
   const raw = invoice?.raw
   if (!raw) return []
@@ -12,11 +34,6 @@ export function mapLineItemsFromInvoice(invoice) {
 
   return pdfProducts.map((p, i) => {
     const erpLine = erpRows[i]
-    const poQty = erpLine ? toNumber(erpLine.QuantityOrdered) : undefined
-    const poPrice = erpLine ? toNumber(erpLine.UnitPrice) : undefined
-    // A receipt row with zero quantity and zero price isn't a real ERP match —
-    // it's a placeholder row, so the item number it carries shouldn't be trusted either.
-    const erpLineIsEmpty = erpLine && poQty === 0 && poPrice === 0
     const suggestion = itemSuggestions.find((s) => s.line_index === i) || null
     const po = p.purchase_order_number
       ? `PO ${p.purchase_order_number}${p.line_number ? ` / L${p.line_number}` : ''}`
@@ -24,18 +41,26 @@ export function mapLineItemsFromInvoice(invoice) {
     return {
       desc: p.description || p.item || 'Line item',
       itemNumber: p.item_number || p.supplier_item_number || p.item || '—',
-      erpItemNumber: erpLineIsEmpty ? null : erpLine?.ItemNumber || null,
+      // erpItemNumber can be populated on a placeholder receipt row too, so it isn't
+      // trustworthy by itself — LineItemsCard only treats it as a real match once
+      // poQty/poPrice are both present and non-zero.
+      erpItemNumber: erpLine?.ItemNumber || null,
       qty: toNumber(p.quantity),
-      poQty,
+      poQty: erpLine ? toNumber(erpLine.QuantityOrdered) : undefined,
       uom: p.unit_of_measure || erpLine?.UOM || 'EA',
       price: toNumber(p.unit_price),
-      poPrice,
+      poPrice: erpLine ? toNumber(erpLine.UnitPrice) : undefined,
       po,
-      suggestedItemNumber:
-        suggestion && (!suggestion.status || suggestion.status === 'pending') ? suggestion.suggested_jde_item_number : null,
+      suggestedItemNumber: isActionableSuggestion(suggestion) ? suggestion.suggested_jde_item_number : null,
+      suggestedQty: isActionableSuggestion(suggestion) && suggestion.quantity != null ? toNumber(suggestion.quantity) : null,
+      suggestedPrice: isActionableSuggestion(suggestion) && suggestion.unit_price != null ? toNumber(suggestion.unit_price) : null,
       suggestionMatchBasis: suggestion?.match_basis || null,
     }
   })
+}
+
+function isActionableSuggestion(suggestion) {
+  return !!suggestion && (!suggestion.status || suggestion.status === 'pending')
 }
 
 const CHARGE_FIELDS = [

@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react'
-import { CheckIcon, WarnIcon, TrashIcon, PlusIcon, ChevronDownIcon, SearchIcon } from '../icons/icons'
+import { CheckIcon, WarnIcon, ChevronDownIcon, SearchIcon } from '../icons/icons'
 import { money } from '../utils/format'
+import { isItemNumberResolved } from '../utils/detailMapping'
 
 function humanizeMatchBasis(basis) {
   if (!basis) return null
@@ -8,12 +9,22 @@ function humanizeMatchBasis(basis) {
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) {
+export default function LineItemsCard({ lineItems, onUpdate }) {
   const [openMatchIndex, setOpenMatchIndex] = useState(null)
 
-  function applySuggestion(i, jdeItemNumber) {
-    onUpdate(i, 'itemNumber', jdeItemNumber)
-    onUpdate(i, 'erpItemNumber', jdeItemNumber)
+  function applySuggestion(i, item) {
+    // itemNumber is about to be overwritten with the assigned JDE code — stash the
+    // original supplier item number first so the pair survives for the item-crossref
+    // sync that runs after voucher creation (see App.jsx's handleCreateVoucher).
+    onUpdate(i, 'crossrefSupplierItemNumber', item.itemNumber)
+    onUpdate(i, 'crossrefAssignedItemNumber', item.suggestedItemNumber)
+    onUpdate(i, 'itemNumber', item.suggestedItemNumber)
+    onUpdate(i, 'erpItemNumber', item.suggestedItemNumber)
+    onUpdate(i, 'itemNumberConfirmed', true)
+    // The suggestion carries its own quantity/price from the JDE item master, which is
+    // real data — use it instead of leaving the placeholder 0s from the receipt line.
+    if (item.suggestedQty != null) onUpdate(i, 'poQty', item.suggestedQty)
+    if (item.suggestedPrice != null) onUpdate(i, 'poPrice', item.suggestedPrice)
     setOpenMatchIndex(null)
   }
 
@@ -49,17 +60,24 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
               const hasPoAmount = hasPoPrice && hasPoQty
               const poAmount = hasPoAmount ? item.poQty * item.poPrice : undefined
               const amountMatched = !hasPoAmount || Math.abs(amount - poAmount) < 0.005
-              const itemNumberMatched = item.erpItemNumber && String(item.erpItemNumber) === String(item.itemNumber)
+              const itemNumberMatched = isItemNumberResolved(item)
               const isOpen = openMatchIndex === i
               const hasSuggestion = !itemNumberMatched && !!item.suggestedItemNumber
+              const suggestionDetails = [
+                humanizeMatchBasis(item.suggestionMatchBasis)
+                  ? `Matched by ${humanizeMatchBasis(item.suggestionMatchBasis)}`
+                  : 'Suggested by the invoice server',
+                item.suggestedQty != null ? `Qty ${item.suggestedQty}` : null,
+                item.suggestedPrice != null ? money(item.suggestedPrice) : null,
+              ].filter(Boolean).join(' · ')
               return (
                 <Fragment key={i}>
                   <tr>
                     <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
                     <td className="mono" style={{ color: 'var(--text-secondary)' }}>
                       <span className="cell-value">{item.itemNumber}</span>
-                      {item.erpItemNumber ? (
-                        <span className={`erp-mini left ${itemNumberMatched ? 'match' : 'mismatch'}`}>ERP {item.erpItemNumber}</span>
+                      {itemNumberMatched ? (
+                        <span className="erp-mini left match">ERP {item.erpItemNumber}</span>
                       ) : (
                         <span className="erp-mini left unavailable">Item number not available</span>
                       )}
@@ -111,9 +129,9 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
                             <ChevronDownIcon />
                           </button>
                         )}
-                        <button className="icon-btn" title="Delete" onClick={() => onRemove(i)}>
+                        {/* <button className="icon-btn" title="Delete" onClick={() => onRemove(i)}>
                           <TrashIcon />
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>
@@ -129,12 +147,8 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
                             <div className="match-candidate best">
                               <span className="mc-rank"><CheckIcon /></span>
                               <span className="mc-code">{item.suggestedItemNumber}</span>
-                              <span className="mc-desc">
-                                {humanizeMatchBasis(item.suggestionMatchBasis)
-                                  ? `Matched by ${humanizeMatchBasis(item.suggestionMatchBasis)}`
-                                  : 'Suggested by the invoice server'}
-                              </span>
-                              <button className="mc-use-btn" onClick={() => applySuggestion(i, item.suggestedItemNumber)}>Use this match</button>
+                              <span className="mc-desc">{suggestionDetails}</span>
+                              <button className="mc-use-btn" onClick={() => applySuggestion(i, item)}>Use this match</button>
                             </div>
                           </div>
                           <div className="match-panel-footer">
@@ -149,12 +163,6 @@ export default function LineItemsCard({ lineItems, onUpdate, onRemove, onAdd }) 
             })}
           </tbody>
         </table>
-      </div>
-      <div className="table-footer">
-        <button className="add-row-btn" onClick={onAdd}>
-          <PlusIcon />
-          Add Line
-        </button>
       </div>
     </div>
   )

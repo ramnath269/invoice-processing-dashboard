@@ -17,6 +17,7 @@ export default function Topbar({
   onCreateVoucher,
   voucherPending,
   voucherCreated,
+  missingItemNumbers,
   onCloseInvoice,
 }) {
   return (
@@ -41,8 +42,14 @@ export default function Topbar({
           <button
             className="btn primary"
             onClick={onCreateVoucher}
-            disabled={voucherPending || voucherCreated}
-            title={voucherCreated ? 'A voucher has already been created for this invoice' : undefined}
+            disabled={voucherPending || voucherCreated || missingItemNumbers}
+            title={
+              voucherCreated
+                ? 'A voucher has already been created for this invoice'
+                : missingItemNumbers
+                ? 'One or more line items are missing an ERP item number'
+                : undefined
+            }
           >
             <CheckIcon strokeWidth="2.5" />
             {voucherPending ? 'Creating Voucher…' : voucherCreated ? 'Voucher Created' : 'Create Voucher'}

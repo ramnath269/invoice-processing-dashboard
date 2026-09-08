@@ -114,3 +114,24 @@ export async function updatePurchaseOrderStatus(invoice, status, extraPdfFields 
   }
   return res.json()
 }
+
+export async function saveItemCrossref({ supplierNumber, itemNumber, assignedItemNumber, confirmedBy }) {
+  if (!API_BASE) {
+    throw new Error('VITE_API_URL is not configured')
+  }
+  const res = await fetch(`${API_BASE}/item-crossref`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      supplier_number: supplierNumber,
+      item_number: itemNumber,
+      assigned_item_number: assignedItemNumber,
+      confirmed_by: confirmedBy,
+    }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(data.error || `Failed to save item cross-reference (${res.status})`)
+  }
+  return data
+}
