@@ -58,6 +58,10 @@ function deriveFlags(record) {
   return flags
 }
 
+function invoiceKey(record) {
+  return record.pdf_fields?.invoice_number || record.pdf_fields?.purchase_order || record._id
+}
+
 function mapRecord(record) {
   const pdf = record.pdf_fields || {}
   const erp = record.erp_fields || {}
@@ -65,7 +69,11 @@ function mapRecord(record) {
   const dueDate = mdyToISO(pdf.due_date) || addDaysISO(invoiceDate, netDaysFromTerms(pdf.payment_terms))
 
   return {
-    id: pdf.invoice_number || pdf.purchase_order || record._id,
+    // Unique per backend record (not per invoice) so duplicate documents for the same
+    // invoice each get their own row instead of colliding — see invoiceNumber below for
+    // the human-facing "Invoice #" value, which duplicates intentionally share.
+    id: record._id,
+    invoiceNumber: invoiceKey(record),
     vendor: erp.VendorName || pdf.vendor || 'Unknown Vendor',
     vendorId: erp.VendorNumber != null ? String(erp.VendorNumber) : '—',
     invoiceDate,
@@ -88,7 +96,8 @@ export async function fetchInvoiceRecords() {
     throw new Error(`Failed to fetch invoice records (${res.status})`)
   }
   const data = await res.json()
-  return Array.isArray(data) ? data.map(mapRecord) : []
+  if (!Array.isArray(data)) return []
+  return data.map(mapRecord)
 }
 
 export async function updatePurchaseOrderStatus(invoice, status, extraPdfFields = {}) {

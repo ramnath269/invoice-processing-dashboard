@@ -10,7 +10,7 @@ export function buildInvoiceContextPrompt(invoice, question) {
 
   const po = invoice.raw?.pdf_fields?.purchase_order
   const parts = [
-    `Invoice #${invoice.id}`,
+    `Invoice #${invoice.invoiceNumber}`,
     `vendor "${invoice.vendor}"${invoice.vendorId ? ` (ID ${invoice.vendorId})` : ''}`,
     po ? `PO ${po}` : null,
     `total ${money(invoice.amount)} USD`,

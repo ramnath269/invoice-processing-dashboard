@@ -28,7 +28,7 @@ export default function DetailScreen({
           <div className="value link">{invoice.vendor}</div>
           <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{invoice.vendorId}</div>
         </div>
-        <div className="info-field"><div className="label">Invoice #</div><div className="value mono">{invoice.id}</div></div>
+        <div className="info-field"><div className="label">Invoice #</div><div className="value mono">{invoice.invoiceNumber}</div></div>
         <div className="info-field">
           <div className="label">Voucher #</div>
           <div

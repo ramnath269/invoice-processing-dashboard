@@ -31,7 +31,7 @@ export default function HeaderCard({ invoice }) {
         <div className="field">
           <label>Invoice Number <span className="req">*</span></label>
           <div className="input-wrap">
-            <input className="mono" key={invoice.id} defaultValue={pdf.invoice_number || invoice.id} />
+            <input className="mono" key={invoice.id} defaultValue={pdf.invoice_number || invoice.invoiceNumber} />
             <CheckIcon className="check" />
           </div>
           <ErpCompare erpValue={erp.VendorInvoiceNo} matches={fieldsMatch(pdf.invoice_number, erp.VendorInvoiceNo)} />

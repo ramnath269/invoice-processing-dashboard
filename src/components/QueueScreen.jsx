@@ -58,7 +58,7 @@ export default function QueueScreen({ showStatCards, counts, search, onSearchCha
                 const sm = STATUS_META[inv.status]
                 return (
                   <tr key={inv.id} onClick={() => onSelectInvoice(inv.id)}>
-                    <td className="inv-num">{inv.id}</td>
+                    <td className="inv-num">{inv.invoiceNumber}</td>
                     <td className="vendor-cell">{inv.vendor}</td>
                     <td>{fmtDate(inv.invoiceDate)}</td>
                     <td>{fmtDate(inv.dueDate)}</td>

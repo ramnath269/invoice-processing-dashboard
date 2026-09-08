@@ -167,7 +167,7 @@ export default function App() {
       if (dateTo) rows = rows.filter((i) => i.invoiceDate <= dateTo)
     }
     const search = queueSearch.trim().toLowerCase()
-    if (search) rows = rows.filter((i) => i.id.toLowerCase().includes(search) || i.vendor.toLowerCase().includes(search))
+    if (search) rows = rows.filter((i) => i.invoiceNumber.toLowerCase().includes(search) || i.vendor.toLowerCase().includes(search))
     return rows
   }, [invoices, currentView, activeFlagFilter, dateFilterActive, dateFrom, dateTo, queueSearch])
 
@@ -306,8 +306,8 @@ export default function App() {
 
       showToast(
         warnings.length === 0
-          ? `Voucher created for ${selectedInvoice.id}`
-          : `Voucher created for ${selectedInvoice.id}, but ${warnings.join(' and ')} — a refresh may show stale data`,
+          ? `Voucher created for ${selectedInvoice.invoiceNumber}`
+          : `Voucher created for ${selectedInvoice.invoiceNumber}, but ${warnings.join(' and ')} — a refresh may show stale data`,
       )
     } catch (err) {
       showToast(err.message || 'Failed to create voucher')
@@ -317,7 +317,7 @@ export default function App() {
   }
 
   function openClarificationModal() {
-    const invId = selectedInvoice?.id || ''
+    const invId = selectedInvoice?.invoiceNumber || ''
     setClarifyMessage(
       `Hi, we're reviewing invoice ${invId} and need clarification on the freight charge — the invoiced amount is $25 over the matching PO. Could you confirm the correct amount? Thanks.`,
     )
@@ -379,7 +379,7 @@ export default function App() {
           voucherPending={voucherPending}
           voucherCreated={selectedInvoice?.status === 'processed'}
           missingItemNumbers={hasMissingItemNumbers}
-          onCloseInvoice={() => showToast(`${selectedInvoice.id} closed`)}
+          onCloseInvoice={() => showToast(`${selectedInvoice.invoiceNumber} closed`)}
         />
 
         {selectedInvoice ? (
@@ -416,7 +416,7 @@ export default function App() {
 
       <ClarificationModal
         open={clarifyOpen}
-        invoiceNum={selectedInvoice?.id || ''}
+        invoiceNum={selectedInvoice?.invoiceNumber || ''}
         email={clarifyEmail}
         message={clarifyMessage}
         emailInvalid={clarifyInvalid}
