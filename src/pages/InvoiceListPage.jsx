@@ -18,6 +18,11 @@ export default function InvoiceListPage() {
   const filteredRows = useMemo(() => {
     const meta = VIEW_META[view] || VIEW_META.dashboard
     let rows = invoices.slice()
+    // Exception invoices are only ever surfaced in the Exceptions view - every other
+    // view (including "everything" views like Dashboard/My Queue, which have no
+    // filterStatus of their own) excludes them rather than mixing them into the
+    // normal queue.
+    if (meta.filterStatus !== 'exception') rows = rows.filter((i) => i.status !== 'exception')
     if (meta.filterStatus) rows = rows.filter((i) => i.status === meta.filterStatus)
     if (flag) rows = rows.filter((i) => i.flags.includes(flag))
     if (from) rows = rows.filter((i) => i.invoiceDate >= from)

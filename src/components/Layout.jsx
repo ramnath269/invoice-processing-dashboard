@@ -46,7 +46,8 @@ export default function Layout({ userId, authToken, onLogout, onSessionExpired }
 
   const counts = useMemo(
     () => ({
-      queue: invoices.length,
+      // Excludes exceptions - they're only ever counted/shown under Exceptions.
+      queue: invoices.filter((i) => i.status !== 'exception').length,
       inreview: invoices.filter((i) => i.status === 'review').length,
       exceptions: invoices.filter((i) => i.status === 'exception').length,
       processed: invoices.filter((i) => i.status === 'processed').length,

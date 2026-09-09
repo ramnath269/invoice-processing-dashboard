@@ -1,4 +1,3 @@
-import { QUICK_FILTERS } from '../data/invoices'
 import { LogoutIcon } from '../icons/icons'
 
 function initialsFor(name) {
@@ -74,15 +73,12 @@ export default function Sidebar({
   currentView,
   onNavigate,
   counts,
-  activeFlagFilter,
-  onQuickFilter,
   dateFrom,
   dateTo,
   onDateFromChange,
   onDateToChange,
   onApplyDateFilter,
   onAnalyticsClick,
-  quickFilterCounts,
   userId,
   onLogout,
 }) {
@@ -116,21 +112,6 @@ export default function Sidebar({
           <span className="label">Analytics</span>
         </div>
       </div>
-
-      <div className="nav-divider"></div>
-      <div className="nav-label">Quick Filters</div>
-      {QUICK_FILTERS.map((f) => (
-        <div
-          key={f.key}
-          className={`quick-filter${activeFlagFilter === f.key ? ' active' : ''}`}
-          title={f.label}
-          onClick={() => onQuickFilter(f.key, f.label)}
-        >
-          <span className="dot" style={{ background: f.color }}></span>
-          <span className="label">{f.label}</span>
-          <span className="count">{quickFilterCounts[f.key] || 0}</span>
-        </div>
-      ))}
 
       <div className="nav-divider"></div>
       <div className="nav-label">Date Range</div>

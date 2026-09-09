@@ -1,19 +1,24 @@
 import DocumentViewer from './DocumentViewer'
-import FormPanel from './FormPanel'
+import ExceptionFormPanel from './ExceptionFormPanel'
 import ChatWidget from './ChatWidget'
 import { money, fmtDate } from '../utils/format'
 
-// Exception invoices (status === 'exception') never reach this component -
-// InvoiceDetailPage routes those to ExceptionDetailScreen instead, since
-// they have no reliable ERP data to show here.
-export default function DetailScreen({
+const EXCEPTION_TITLES = {
+  duplicate_invoice: 'Duplicate invoice',
+  order_not_found: 'Order not found',
+}
+
+// Detail view for an exception invoice (duplicate_invoice / order_not_found).
+// JDE's voucher-match never got past the error that caused the exception, so
+// there's no reliable ERP data to show or compare against - this renders PDF
+// values only, via ExceptionFormPanel, and has no Create Voucher path at all
+// (see InvoiceDetailPage / Topbar).
+export default function ExceptionDetailScreen({
   invoice,
   userId,
   lineItems,
   charges,
   onUpdateLineItem,
-  onRemoveLineItem,
-  onAddLineItem,
   onUpdateCharge,
   onRemoveCharge,
   onAddCharge,
@@ -25,6 +30,12 @@ export default function DetailScreen({
 }) {
   return (
     <div id="detailScreen">
+      <div className="exception-banner">
+        <span className="exception-title">
+          {EXCEPTION_TITLES[invoice.exceptionReason] || 'Exception'}:
+        </span>
+        <span>{invoice.exceptionMessage || 'This invoice could not be processed against JDE.'}</span>
+      </div>
       <div className="infobar">
         <div className="info-field">
           <div className="label">Vendor</div>
@@ -34,12 +45,7 @@ export default function DetailScreen({
         <div className="info-field"><div className="label">Invoice #</div><div className="value mono">{invoice.invoiceNumber}</div></div>
         <div className="info-field">
           <div className="label">Voucher #</div>
-          <div
-            className={`value mono${invoice.status === 'processed' ? ' success' : ''}`}
-            style={invoice.status === 'processed' ? undefined : { color: 'var(--text-muted)', fontWeight: 500 }}
-          >
-            {invoice.status === 'processed' ? (invoice.voucherNumber || 'Voucher Created') : 'Voucher not created'}
-          </div>
+          <div className="value mono" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Voucher not created</div>
         </div>
         <div className="info-field"><div className="label">Invoice Date</div><div className="value mono">{fmtDate(invoice.invoiceDate)}</div></div>
         <div className="info-field"><div className="label">Due Date</div><div className="value mono">{fmtDate(invoice.dueDate)}</div></div>
@@ -50,13 +56,11 @@ export default function DetailScreen({
 
       <div className="panels">
         <DocumentViewer fileUrl={invoice.fileUrl} />
-        <FormPanel
+        <ExceptionFormPanel
           invoice={invoice}
           lineItems={lineItems}
           charges={charges}
           onUpdateLineItem={onUpdateLineItem}
-          onRemoveLineItem={onRemoveLineItem}
-          onAddLineItem={onAddLineItem}
           onUpdateCharge={onUpdateCharge}
           onRemoveCharge={onRemoveCharge}
           onAddCharge={onAddCharge}

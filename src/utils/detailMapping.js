@@ -55,12 +55,47 @@ export function mapLineItemsFromInvoice(invoice) {
       suggestedQty: isActionableSuggestion(suggestion) && suggestion.quantity != null ? toNumber(suggestion.quantity) : null,
       suggestedPrice: isActionableSuggestion(suggestion) && suggestion.unit_price != null ? toNumber(suggestion.unit_price) : null,
       suggestionMatchBasis: suggestion?.match_basis || null,
+      // Raw field -> DocAI confidence (0-1) for this line, e.g. {item: 0.99,
+      // quantity: 1.0, ...} - see app/document_ai.py::parse_entities. A field
+      // DocAI never returned at all has no key here, not a fabricated 0.
+      confidence: p.confidence || {},
     }
   })
 }
 
 function isActionableSuggestion(suggestion) {
   return !!suggestion && (!suggestion.status || suggestion.status === 'pending')
+}
+
+// The single number LineItemsCard shows per row: the weakest field on that
+// line, since that's the one that would actually need a human look. Returns
+// null (not 0) when there's no confidence data at all for the line - either
+// an invoice created before this field existed, or every value on the line
+// was defaulted rather than extracted - so the UI can render "—" instead of
+// a misleading 0%.
+export function lineItemConfidence(item) {
+  const values = Object.values(item.confidence || {}).filter((v) => typeof v === 'number')
+  if (!values.length) return null
+  return Math.min(...values)
+}
+
+// Matches app/document_ai.py's CONFIDENCE_THRESHOLD (0.80) for the "high"
+// cutoff, so a green badge means DocAI's own retry logic was satisfied with
+// this line too - "medium" is the band we've actually seen trigger a retry
+// in practice (0.5-0.8), "low" below that is rarely worth trusting.
+export function confidenceTier(value) {
+  if (value == null) return 'unknown'
+  if (value >= 0.8) return 'high'
+  if (value >= 0.5) return 'medium'
+  return 'low'
+}
+
+export function confidenceTitle(item) {
+  const entries = Object.entries(item.confidence || {})
+  if (!entries.length) return 'No confidence data for this line'
+  return entries
+    .map(([field, value]) => `${field}: ${Math.round(value * 100)}%`)
+    .join(' · ')
 }
 
 const CHARGE_FIELDS = [

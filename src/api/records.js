@@ -54,7 +54,13 @@ function deriveFlags(record) {
   const pdfTotal = parseAmount(pdf.total_amount_due)
   const erpTotal = parseAmount(erp.TotalAmount)
   if (pdfTotal && erpTotal && Math.abs(pdfTotal - erpTotal) > 0.01) flags.push('priceVariance')
-  if (erp.ErrorCode) flags.push('poMismatch')
+  if (record.exception_reason === 'duplicate_invoice') {
+    flags.push('duplicateSuspected')
+  } else if (record.exception_reason === 'order_not_found') {
+    flags.push('orderNotFound')
+  } else if (erp.ErrorCode) {
+    flags.push('poMismatch')
+  }
   return flags
 }
 
@@ -83,6 +89,8 @@ function mapRecord(record) {
     flags: deriveFlags(record),
     fileUrl: fileUrlFor(record),
     voucherNumber: pdf.voucher_number || null,
+    exceptionReason: record.exception_reason || null,
+    exceptionMessage: record.error_message || null,
     raw: record,
   }
 }

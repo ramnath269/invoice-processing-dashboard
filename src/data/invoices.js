@@ -4,6 +4,7 @@ export const FLAG_META = {
   qtyVariance: { label: 'Qty Variance', color: '#f97316' },
   lowConfidence: { label: 'Low OCR Confidence', color: '#eab308' },
   duplicateSuspected: { label: 'Duplicate Suspected', color: '#ef4444' },
+  orderNotFound: { label: 'Order Not Found', color: '#b91c1c' },
   overdue: { label: 'Overdue', color: '#dc2626' },
 }
 
@@ -13,6 +14,7 @@ export const QUICK_FILTERS = [
   { key: 'qtyVariance', label: 'Qty Variance', color: '#f97316' },
   { key: 'lowConfidence', label: 'Low OCR Confidence', color: '#eab308' },
   { key: 'duplicateSuspected', label: 'Duplicate Suspected', color: '#ef4444' },
+  { key: 'orderNotFound', label: 'Order Not Found', color: '#b91c1c' },
   { key: 'overdue', label: 'Overdue Invoices', color: '#dc2626' },
 ]
 

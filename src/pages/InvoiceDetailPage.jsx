@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Topbar from '../components/Topbar'
 import DetailScreen from '../components/DetailScreen'
+import ExceptionDetailScreen from '../components/ExceptionDetailScreen'
 import ClarificationModal from '../components/ClarificationModal'
 import { STATUS_META } from '../data/invoices'
 import { fetchInvoiceRecord, saveItemCrossref, updatePurchaseOrderStatus } from '../api/records'
@@ -224,24 +225,43 @@ export default function InvoiceDetailPage() {
         voucherPending={voucherMutation.isPending}
         voucherCreated={invoice.status === 'processed'}
         missingItemNumbers={hasMissingItemNumbers}
+        isException={invoice.status === 'exception'}
         onCloseInvoice={() => showToast(`${invoice.invoiceNumber} closed`)}
       />
 
-      <DetailScreen
-        invoice={invoice}
-        userId={userId}
-        lineItems={lineItems}
-        charges={charges}
-        onUpdateLineItem={updateLineItem}
-        onUpdateCharge={updateCharge}
-        onRemoveCharge={removeCharge}
-        onAddCharge={addCharge}
-        chatMessages={chatMessages}
-        chatInput={chatInput}
-        chatPending={chatPending}
-        onChatInputChange={setChatInput}
-        onSendChat={() => sendMessage(chatInput)}
-      />
+      {invoice.status === 'exception' ? (
+        <ExceptionDetailScreen
+          invoice={invoice}
+          userId={userId}
+          lineItems={lineItems}
+          charges={charges}
+          onUpdateLineItem={updateLineItem}
+          onUpdateCharge={updateCharge}
+          onRemoveCharge={removeCharge}
+          onAddCharge={addCharge}
+          chatMessages={chatMessages}
+          chatInput={chatInput}
+          chatPending={chatPending}
+          onChatInputChange={setChatInput}
+          onSendChat={() => sendMessage(chatInput)}
+        />
+      ) : (
+        <DetailScreen
+          invoice={invoice}
+          userId={userId}
+          lineItems={lineItems}
+          charges={charges}
+          onUpdateLineItem={updateLineItem}
+          onUpdateCharge={updateCharge}
+          onRemoveCharge={removeCharge}
+          onAddCharge={addCharge}
+          chatMessages={chatMessages}
+          chatInput={chatInput}
+          chatPending={chatPending}
+          onChatInputChange={setChatInput}
+          onSendChat={() => sendMessage(chatInput)}
+        />
+      )}
 
       <ClarificationModal
         open={clarifyOpen}

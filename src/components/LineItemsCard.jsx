@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { CheckIcon, WarnIcon, ChevronDownIcon, SearchIcon } from '../icons/icons'
 import { money } from '../utils/format'
-import { isItemNumberResolved } from '../utils/detailMapping'
+import { isItemNumberResolved, lineItemConfidence, confidenceTier, confidenceTitle } from '../utils/detailMapping'
 
 function humanizeMatchBasis(basis) {
   if (!basis) return null
@@ -46,6 +46,7 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
               <th className="num" style={{ width: '1%' }}>Qty</th>
               <th className="num" style={{ width: '1%' }}>Price</th>
               <th className="num" style={{ width: '1%' }}>Amount</th>
+              <th className="center" style={{ width: '80px' }}>Confidence</th>
               <th className="center" style={{ width: '36px' }}>Status</th>
               <th style={{ width: '24px' }}></th>
             </tr>
@@ -64,6 +65,8 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
               const itemNumberMatched = isItemNumberResolved(item)
               const isOpen = openMatchIndex === i
               const hasSuggestion = !itemNumberMatched && !!item.suggestedItemNumber
+              const confidence = lineItemConfidence(item)
+              const tier = confidenceTier(confidence)
               const suggestionDetails = [
                 humanizeMatchBasis(item.suggestionMatchBasis)
                   ? `Matched by ${humanizeMatchBasis(item.suggestionMatchBasis)}`
@@ -85,12 +88,7 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
                     </td>
                     <td className="desc"><span className="cell-value">{item.desc}</span><span className="sub">{item.po}</span></td>
                     <td className="num">
-                      <input
-                        type="number"
-                        value={item.qty}
-                        step="1"
-                        onChange={(e) => onUpdate(i, 'qty', e.target.value)}
-                      />
+                      <span className="amount-value">{item.qty}</span>
                       {hasPoQty && (
                         <span className={`erp-mini ${qtyMatched ? 'match' : 'mismatch'}`}>JDE {item.poQty}</span>
                       )}
@@ -111,6 +109,14 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
                       {hasPoAmount && (
                         <span className={`erp-mini ${amountMatched ? 'match' : 'mismatch'}`}>JDE {money(poAmount)}</span>
                       )}
+                    </td>
+                    <td className="center">
+                      <span
+                        className={`confidence${tier === 'high' ? '' : ` ${tier}`}`}
+                        title={confidenceTitle(item)}
+                      >
+                        {confidence == null ? '—' : `${Math.round(confidence * 100)}%`}
+                      </span>
                     </td>
                     <td className="center">
                       <span className={`status-pill ${matched ? 'matched' : 'review'}`}>
@@ -138,7 +144,7 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
                   </tr>
                   {isOpen && hasSuggestion && (
                     <tr className="match-row">
-                      <td colSpan={8}>
+                      <td colSpan={9}>
                         <div className="match-panel">
                           <div className="match-panel-hd">
                             <SearchIcon />
