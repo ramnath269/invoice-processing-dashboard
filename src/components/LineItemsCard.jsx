@@ -13,12 +13,13 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
   const [openMatchIndex, setOpenMatchIndex] = useState(null)
 
   function applySuggestion(i, item) {
-    // itemNumber is about to be overwritten with the assigned JDE code — stash the
-    // original supplier item number first so the pair survives for the item-crossref
-    // sync that runs after voucher creation (see App.jsx's handleCreateVoucher).
+    // Stash the original (supplier/PDF) item number alongside the assigned JDE code so
+    // the pair survives for the item-crossref sync that runs after voucher creation (see
+    // InvoiceDetailPage's handleCreateVoucher). Only erpItemNumber is overwritten here —
+    // itemNumber stays as the value extracted from the invoice, which the UI should keep
+    // showing regardless of what JDE code it's resolved to.
     onUpdate(i, 'crossrefSupplierItemNumber', item.itemNumber)
     onUpdate(i, 'crossrefAssignedItemNumber', item.suggestedItemNumber)
-    onUpdate(i, 'itemNumber', item.suggestedItemNumber)
     onUpdate(i, 'erpItemNumber', item.suggestedItemNumber)
     onUpdate(i, 'itemNumberConfirmed', true)
     // The suggestion carries its own quantity/price from the JDE item master, which is
@@ -77,7 +78,7 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
                     <td className="mono" style={{ color: 'var(--text-secondary)' }}>
                       <span className="cell-value">{item.itemNumber}</span>
                       {itemNumberMatched ? (
-                        <span className="erp-mini left match">ERP {item.erpItemNumber}</span>
+                        <span className="erp-mini left match">JDE {item.erpItemNumber}</span>
                       ) : (
                         <span className="erp-mini left unavailable">Item number not available</span>
                       )}
@@ -91,7 +92,7 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
                         onChange={(e) => onUpdate(i, 'qty', e.target.value)}
                       />
                       {hasPoQty && (
-                        <span className={`erp-mini ${qtyMatched ? 'match' : 'mismatch'}`}>ERP {item.poQty}</span>
+                        <span className={`erp-mini ${qtyMatched ? 'match' : 'mismatch'}`}>JDE {item.poQty}</span>
                       )}
                     </td>
                     <td className="num">
@@ -102,13 +103,13 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
                         onChange={(e) => onUpdate(i, 'price', e.target.value)}
                       />
                       {hasPoPrice && (
-                        <span className={`erp-mini ${priceMatched ? 'match' : 'mismatch'}`}>ERP {money(item.poPrice)}</span>
+                        <span className={`erp-mini ${priceMatched ? 'match' : 'mismatch'}`}>JDE {money(item.poPrice)}</span>
                       )}
                     </td>
                     <td className="num">
                       <span className="amount-value">{money(amount)}</span>
                       {hasPoAmount && (
-                        <span className={`erp-mini ${amountMatched ? 'match' : 'mismatch'}`}>ERP {money(poAmount)}</span>
+                        <span className={`erp-mini ${amountMatched ? 'match' : 'mismatch'}`}>JDE {money(poAmount)}</span>
                       )}
                     </td>
                     <td className="center">
@@ -141,7 +142,7 @@ export default function LineItemsCard({ lineItems, onUpdate }) {
                         <div className="match-panel">
                           <div className="match-panel-hd">
                             <SearchIcon />
-                            "{item.itemNumber}" isn't in the ERP item master — the invoice server suggests a match
+                            "{item.itemNumber}" isn't in the JDE item master — the invoice server suggests a match
                           </div>
                           <div className="match-candidates">
                             <div className="match-candidate best">

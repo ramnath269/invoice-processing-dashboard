@@ -100,6 +100,18 @@ export async function fetchInvoiceRecords() {
   return data.map(mapRecord)
 }
 
+export async function fetchInvoiceRecord(id) {
+  if (!API_BASE) {
+    throw new Error('VITE_API_URL is not configured')
+  }
+  const res = await fetch(`${API_BASE}/po/${id}`)
+  if (!res.ok) {
+    throw new Error(`Failed to fetch invoice record (${res.status})`)
+  }
+  const data = await res.json()
+  return mapRecord(data)
+}
+
 export async function updatePurchaseOrderStatus(invoice, status, extraPdfFields = {}) {
   if (!API_BASE) {
     throw new Error('VITE_API_URL is not configured')
