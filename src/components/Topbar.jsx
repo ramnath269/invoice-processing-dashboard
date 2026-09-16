@@ -1,4 +1,4 @@
-import { ChevronLeftIcon, CheckIcon, CloseIcon } from '../icons/icons'
+import { ChevronLeftIcon, CheckIcon, CloseIcon, RefreshIcon } from '../icons/icons'
 
 const BADGE_STYLES = {
   review: { background: 'var(--orange-badge-bg)', color: 'var(--orange-badge-text)' },
@@ -20,6 +20,8 @@ export default function Topbar({
   missingItemNumbers,
   isException,
   onCloseInvoice,
+  onRefresh,
+  refreshing,
 }) {
   return (
     <div className="topbar">
@@ -34,6 +36,16 @@ export default function Topbar({
           <span className="badge review" style={BADGE_STYLES[badge.status]}>
             {badge.label}
           </span>
+        )}
+        {onRefresh && (
+          <button
+            className="icon-btn"
+            onClick={onRefresh}
+            disabled={refreshing}
+            title="Refresh"
+          >
+            <RefreshIcon strokeWidth="2.3" className={refreshing ? 'spin' : ''} />
+          </button>
         )}
       </div>
       {showDetailActions && (

@@ -123,6 +123,14 @@ export function UploadIcon(props) {
   )
 }
 
+export function RefreshIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <path d="M21 12a9 9 0 10-2.64 6.36M21 12V6m0 6h-6" />
+    </svg>
+  )
+}
+
 export function LogoutIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>

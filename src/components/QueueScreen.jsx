@@ -10,6 +10,11 @@ const STAT_CARDS = [
   { key: 'processed', label: 'Processed Payment', color: '#16a34a' },
 ]
 
+// Column count of the queue table below - the shimmer's placeholder cells
+// need to match it so the skeleton row lines up with the real header.
+const SKELETON_COLUMNS = 7
+const SKELETON_ROWS = 6
+
 export default function QueueScreen({
   showStatCards,
   counts,
@@ -19,6 +24,7 @@ export default function QueueScreen({
   onNavigate,
   onSelectInvoice,
   loading,
+  refreshing,
   error,
   onRetry,
   onUploadInvoice,
@@ -94,33 +100,43 @@ export default function QueueScreen({
               </tr>
             </thead>
             <tbody>
-              {rows.map((inv) => {
-                const sm = STATUS_META[inv.status]
-                return (
-                  <tr key={inv.id} onClick={() => onSelectInvoice(inv.id)}>
-                    <td className="inv-num">{inv.invoiceNumber}</td>
-                    <td className="vendor-cell">{inv.vendor}</td>
-                    <td>{fmtDate(inv.invoiceDate)}</td>
-                    <td>{fmtDate(inv.dueDate)}</td>
-                    <td className="num amount-cell">{money(inv.amount)}</td>
-                    <td><span className={`row-status ${sm.cls}`}>{sm.label}</span></td>
-                    <td>
-                      <div className="flag-chips">
-                        {inv.flags.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>}
-                        {inv.flags.map((f) => {
-                          const fm = FLAG_META[f]
-                          return (
-                            <span key={f} className="flag-chip">
-                              <span className="fdot" style={{ background: fm.color }}></span>
-                              {fm.label}
-                            </span>
-                          )
-                        })}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+              {refreshing
+                ? Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+                    <tr key={`skeleton-${i}`} className="skeleton-row">
+                      {Array.from({ length: SKELETON_COLUMNS }).map((__, j) => (
+                        <td key={j}>
+                          <div className="shimmer-block" style={{ height: '13px', width: j === 0 ? '65%' : '80%' }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : rows.map((inv) => {
+                    const sm = STATUS_META[inv.status]
+                    return (
+                      <tr key={inv.id} onClick={() => onSelectInvoice(inv.id)}>
+                        <td className="inv-num">{inv.invoiceNumber}</td>
+                        <td className="vendor-cell">{inv.vendor}</td>
+                        <td>{fmtDate(inv.invoiceDate)}</td>
+                        <td>{fmtDate(inv.dueDate)}</td>
+                        <td className="num amount-cell">{money(inv.amount)}</td>
+                        <td><span className={`row-status ${sm.cls}`}>{sm.label}</span></td>
+                        <td>
+                          <div className="flag-chips">
+                            {inv.flags.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>}
+                            {inv.flags.map((f) => {
+                              const fm = FLAG_META[f]
+                              return (
+                                <span key={f} className="flag-chip">
+                                  <span className="fdot" style={{ background: fm.color }}></span>
+                                  {fm.label}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
             </tbody>
           </table>
         )}

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useOutletContext, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Topbar from '../components/Topbar'
 import DetailScreen from '../components/DetailScreen'
+import DetailScreenSkeleton from '../components/DetailScreenSkeleton'
 import ExceptionDetailScreen from '../components/ExceptionDetailScreen'
 import ClarificationModal from '../components/ClarificationModal'
 import { STATUS_META } from '../data/invoices'
@@ -15,15 +16,32 @@ import { buildInvoiceContextPrompt } from '../utils/chatContext'
 export default function InvoiceDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const { userId, authToken, onSessionExpired, showToast } = useOutletContext()
 
   const {
     data: invoice,
     isLoading,
+    isFetching,
     error,
-    refetch,
+    refetch: refetchQuery,
   } = useQuery({ queryKey: ['invoice', id], queryFn: () => fetchInvoiceRecord(id) })
+
+  // Distinct from isFetching (also true for the background refetches that
+  // follow queryClient.invalidateQueries after a mutation - e.g. right
+  // after Create Voucher/Reprocess succeeds) - the skeleton below should
+  // only replace the screen for a refresh the person explicitly asked for
+  // via the Topbar button, not one triggered by their own action settling.
+  const [manualRefreshing, setManualRefreshing] = useState(false)
+  async function refetch() {
+    setManualRefreshing(true)
+    try {
+      await refetchQuery()
+    } finally {
+      setManualRefreshing(false)
+    }
+  }
 
   const [lineItems, setLineItems] = useState([])
   const [charges, setCharges] = useState([])
@@ -206,7 +224,11 @@ export default function InvoiceDetailPage() {
   }
 
   function handleBack() {
-    navigate('/invoices')
+    // Falls back to the plain list only when there's no recorded origin -
+    // e.g. this invoice was opened directly via a bookmarked/shared URL
+    // rather than by clicking through from a filtered view (Exceptions, a
+    // quick filter, a date range, etc.), which location.state.from preserves.
+    navigate(location.state?.from || '/invoices')
   }
 
   if (isLoading) {
@@ -242,6 +264,8 @@ export default function InvoiceDetailPage() {
         badge={badge}
         showBack
         onBack={handleBack}
+        onRefresh={refetch}
+        refreshing={isFetching}
         showDetailActions
         onRequestClarification={openClarificationModal}
         onCreateVoucher={() => voucherMutation.mutate()}
@@ -252,7 +276,9 @@ export default function InvoiceDetailPage() {
         onCloseInvoice={() => showToast(`${invoice.invoiceNumber} closed`)}
       />
 
-      {invoice.status === 'exception' ? (
+      {manualRefreshing ? (
+        <DetailScreenSkeleton />
+      ) : invoice.status === 'exception' ? (
         <ExceptionDetailScreen
           invoice={invoice}
           userId={userId}

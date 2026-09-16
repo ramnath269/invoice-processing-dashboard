@@ -39,10 +39,37 @@ export default function Layout({ userId, authToken, onLogout, onSessionExpired }
   const {
     data: invoices = [],
     isLoading: invoicesLoading,
+    isFetching: invoicesFetching,
     error: invoicesErrorObj,
-    refetch: refetchInvoices,
-  } = useQuery({ queryKey: ['invoices'], queryFn: fetchInvoiceRecords })
+    refetch: refetchInvoicesQuery,
+  } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: fetchInvoiceRecords,
+    // New invoices land asynchronously - a folder-watched file or an emailed
+    // attachment can take 30s+ to finish OCR/JDE/PO-creation on the backend,
+    // completely outside any user action here, so nothing else would ever
+    // tell this query to refetch. Polling is what makes new records (and
+    // status changes made from elsewhere) show up without a manual reload.
+    // Pauses automatically while the tab isn't focused (refetchIntervalInBackground
+    // defaults to false), so this doesn't poll a backgrounded tab.
+    refetchInterval: 15000,
+  })
   const invoicesError = invoicesErrorObj?.message || null
+
+  // Distinct from invoicesFetching (react-query's isFetching, true for the
+  // silent 15s background poll too) - this is only true for a refetch the
+  // person actually asked for (the refresh button, or the error state's
+  // Retry), so the queue table's shimmer replaces the list only on those,
+  // never on the background poll quietly updating rows in place.
+  const [invoicesManualRefreshing, setInvoicesManualRefreshing] = useState(false)
+  async function refetchInvoices() {
+    setInvoicesManualRefreshing(true)
+    try {
+      await refetchInvoicesQuery()
+    } finally {
+      setInvoicesManualRefreshing(false)
+    }
+  }
 
   const counts = useMemo(
     () => ({
@@ -130,6 +157,8 @@ export default function Layout({ userId, authToken, onLogout, onSessionExpired }
           context={{
             invoices,
             invoicesLoading,
+            invoicesFetching,
+            invoicesManualRefreshing,
             invoicesError,
             refetchInvoices,
             counts,

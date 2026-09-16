@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import Topbar from '../components/Topbar'
 import QueueScreen from '../components/QueueScreen'
 import { VIEW_META } from '../data/invoices'
@@ -7,8 +7,18 @@ import { uploadInvoice } from '../api/records'
 
 export default function InvoiceListPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
-  const { invoices, invoicesLoading, invoicesError, refetchInvoices, counts, showToast } = useOutletContext()
+  const {
+    invoices,
+    invoicesLoading,
+    invoicesFetching,
+    invoicesManualRefreshing,
+    invoicesError,
+    refetchInvoices,
+    counts,
+    showToast,
+  } = useOutletContext()
   const [queueSearch, setQueueSearch] = useState('')
   const [uploading, setUploading] = useState(false)
 
@@ -54,7 +64,11 @@ export default function InvoiceListPage() {
 
   return (
     <>
-      <Topbar pageTitle={(VIEW_META[view] || VIEW_META.dashboard).title} />
+      <Topbar
+        pageTitle={(VIEW_META[view] || VIEW_META.dashboard).title}
+        onRefresh={refetchInvoices}
+        refreshing={invoicesFetching}
+      />
       <QueueScreen
         showStatCards={view === 'dashboard'}
         counts={counts}
@@ -62,8 +76,11 @@ export default function InvoiceListPage() {
         onSearchChange={setQueueSearch}
         rows={filteredRows}
         onNavigate={onNavigate}
-        onSelectInvoice={(id) => navigate(`/invoices/${id}`)}
+        onSelectInvoice={(id) =>
+          navigate(`/invoices/${id}`, { state: { from: `${location.pathname}${location.search}` } })
+        }
         loading={invoicesLoading}
+        refreshing={invoicesManualRefreshing}
         error={invoicesError}
         onRetry={refetchInvoices}
         onUploadInvoice={onUploadInvoice}

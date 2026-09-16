@@ -263,6 +263,20 @@ input,select,textarea{font-family:inherit;}
 }
 .icon-btn:hover{background:var(--surface-alt);color:var(--text-primary);}
 .icon-btn svg{width:14px;height:14px;}
+.icon-btn:disabled{opacity:.5;cursor:default;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{animation:spin 0.8s linear infinite;}
+
+.shimmer-block{
+  background:linear-gradient(90deg, var(--border-soft) 25%, var(--surface-alt) 37%, var(--border-soft) 63%);
+  background-size:400% 100%;
+  animation:shimmer-sweep 1.4s ease infinite;
+  border-radius:var(--radius-sm);
+}
+@keyframes shimmer-sweep{
+  0%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
 .doc-body{flex:1;overflow:auto;padding:22px;background:var(--surface-alt);}
 .doc-page-wrap{margin:0 auto;}
 .doc-thumbs{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--border);background:var(--card-bg);flex-shrink:0;}
