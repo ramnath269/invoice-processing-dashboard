@@ -58,6 +58,10 @@ function deriveFlags(record) {
     flags.push('duplicateSuspected')
   } else if (record.exception_reason === 'order_not_found') {
     flags.push('orderNotFound')
+  } else if (record.exception_reason === 'missing_order_number') {
+    flags.push('missingPoNumber')
+  } else if (record.exception_reason === 'not_an_invoice') {
+    flags.push('notAnInvoice')
   } else if (erp.ErrorCode) {
     flags.push('poMismatch')
   }
@@ -142,6 +146,54 @@ export async function updatePurchaseOrderStatus(invoice, status, extraPdfFields 
     throw new Error(`Failed to update purchase order status (${res.status})`)
   }
   return res.json()
+}
+
+// Drops a PDF into the watch folder via the server's /upload-invoice route,
+// which the ap-invoice-workflow folder watcher then picks up on its own -
+// this call only confirms the upload landed, not that processing finished
+// (that can take 30s+ for the OCR call alone), so the caller shouldn't
+// expect the new invoice to show up in fetchInvoiceRecords() immediately.
+export async function uploadInvoice(file) {
+  if (!API_BASE) {
+    throw new Error('VITE_API_URL is not configured')
+  }
+  const formData = new FormData()
+  formData.append('invoice', file)
+  const res = await fetch(`${API_BASE}/upload-invoice`, {
+    method: 'POST',
+    body: formData,
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(data.error || `Failed to upload invoice (${res.status})`)
+  }
+  return data
+}
+
+// Retries JDE voucher-match for a duplicate_invoice exception with a
+// corrected invoice number. The server relays whatever outcome
+// ap-invoice-workflow's reprocess endpoint reports - { outcome: 'success' |
+// 'no_receipt_yet' | 'exception', ... } - rather than this function
+// interpreting it, since the caller (InvoiceDetailPage) needs the specific
+// outcome to decide whether to navigate away or stay on the exception view.
+export async function reprocessDuplicateInvoice(invoice, invoiceNumber) {
+  if (!API_BASE) {
+    throw new Error('VITE_API_URL is not configured')
+  }
+  const record = invoice.raw
+  if (!record?._id) {
+    throw new Error('Missing record id for reprocess')
+  }
+  const res = await fetch(`${API_BASE}/po/${record._id}/reprocess-duplicate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ invoice_number: invoiceNumber }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(data.error || `Failed to reprocess invoice (${res.status})`)
+  }
+  return data
 }
 
 export async function saveItemCrossref({ supplierNumber, itemNumber, assignedItemNumber, confirmedBy }) {

@@ -6,7 +6,19 @@ import TotalsCard from './TotalsCard'
 // TotalsCard is reused as-is - it's computed entirely from lineItems/charges
 // (both PDF-sourced) and invoice.amount (pdf.total_amount_due), no ERP data
 // involved.
-export default function ExceptionFormPanel({ invoice, lineItems, charges, onUpdateLineItem, onUpdateCharge, onRemoveCharge, onAddCharge }) {
+export default function ExceptionFormPanel({
+  invoice,
+  lineItems,
+  charges,
+  onUpdateLineItem,
+  onUpdateCharge,
+  onRemoveCharge,
+  onAddCharge,
+  invoiceNumber,
+  onInvoiceNumberChange,
+  onReprocess,
+  reprocessPending,
+}) {
   const merch = lineItems.reduce((s, it) => s + it.qty * it.price, 0)
   const chargesTotal = charges.reduce((s, c) => s + c.inv, 0)
   const taxRow = charges.find((c) => c.type.toLowerCase().includes('tax'))
@@ -15,7 +27,13 @@ export default function ExceptionFormPanel({ invoice, lineItems, charges, onUpda
 
   return (
     <div className="form-panel">
-      <ExceptionHeaderCard invoice={invoice} />
+      <ExceptionHeaderCard
+        invoice={invoice}
+        invoiceNumber={invoiceNumber}
+        onInvoiceNumberChange={onInvoiceNumberChange}
+        onReprocess={onReprocess}
+        reprocessPending={reprocessPending}
+      />
       <ExceptionLineItemsCard lineItems={lineItems} onUpdate={onUpdateLineItem} />
       <ExceptionChargesCard
         charges={charges}

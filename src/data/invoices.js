@@ -5,6 +5,8 @@ export const FLAG_META = {
   lowConfidence: { label: 'Low OCR Confidence', color: '#eab308' },
   duplicateSuspected: { label: 'Duplicate Suspected', color: '#ef4444' },
   orderNotFound: { label: 'Order Not Found', color: '#b91c1c' },
+  missingPoNumber: { label: 'Missing PO Number', color: '#c2410c' },
+  notAnInvoice: { label: 'Not an Invoice', color: '#6b7280' },
   overdue: { label: 'Overdue', color: '#dc2626' },
 }
 
@@ -15,6 +17,8 @@ export const QUICK_FILTERS = [
   { key: 'lowConfidence', label: 'Low OCR Confidence', color: '#eab308' },
   { key: 'duplicateSuspected', label: 'Duplicate Suspected', color: '#ef4444' },
   { key: 'orderNotFound', label: 'Order Not Found', color: '#b91c1c' },
+  { key: 'missingPoNumber', label: 'Missing PO Number', color: '#c2410c' },
+  { key: 'notAnInvoice', label: 'Not an Invoice', color: '#6b7280' },
   { key: 'overdue', label: 'Overdue Invoices', color: '#dc2626' },
 ]
 

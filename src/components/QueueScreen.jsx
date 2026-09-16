@@ -1,4 +1,5 @@
-import { SearchIcon } from '../icons/icons'
+import { useRef } from 'react'
+import { SearchIcon, UploadIcon } from '../icons/icons'
 import { FLAG_META, STATUS_META } from '../data/invoices'
 import { money, fmtDate } from '../utils/format'
 
@@ -9,17 +10,56 @@ const STAT_CARDS = [
   { key: 'processed', label: 'Processed Payment', color: '#16a34a' },
 ]
 
-export default function QueueScreen({ showStatCards, counts, search, onSearchChange, rows, onNavigate, onSelectInvoice, loading, error, onRetry }) {
+export default function QueueScreen({
+  showStatCards,
+  counts,
+  search,
+  onSearchChange,
+  rows,
+  onNavigate,
+  onSelectInvoice,
+  loading,
+  error,
+  onRetry,
+  onUploadInvoice,
+  uploading,
+}) {
+  const fileInputRef = useRef(null)
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file next time
+    if (file) onUploadInvoice(file)
+  }
+
   return (
     <div id="queueScreen">
       <div className="queue-toolbar">
-        <div className="queue-search">
-          <SearchIcon />
+        <div className="queue-toolbar-left">
+          <div className="queue-search">
+            <SearchIcon />
+            <input
+              type="text"
+              placeholder="Search invoice #, vendor..."
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+          </div>
+          <button
+            className="btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            title="Upload an invoice PDF for processing"
+          >
+            <UploadIcon />
+            {uploading ? 'Uploading…' : 'Upload Invoice'}
+          </button>
           <input
-            type="text"
-            placeholder="Search invoice #, vendor..."
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            hidden
+            onChange={handleFileChange}
           />
         </div>
         <div className="queue-summary">

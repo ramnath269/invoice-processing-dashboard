@@ -3,12 +3,14 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import Topbar from '../components/Topbar'
 import QueueScreen from '../components/QueueScreen'
 import { VIEW_META } from '../data/invoices'
+import { uploadInvoice } from '../api/records'
 
 export default function InvoiceListPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { invoices, invoicesLoading, invoicesError, refetchInvoices, counts } = useOutletContext()
+  const { invoices, invoicesLoading, invoicesError, refetchInvoices, counts, showToast } = useOutletContext()
   const [queueSearch, setQueueSearch] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   const view = searchParams.get('view') || 'dashboard'
   const flag = searchParams.get('flag')
@@ -38,6 +40,18 @@ export default function InvoiceListPage() {
     navigate(`/invoices?${params.toString()}`)
   }
 
+  async function onUploadInvoice(file) {
+    setUploading(true)
+    try {
+      await uploadInvoice(file)
+      showToast(`${file.name} uploaded — it will appear here once processing finishes`)
+    } catch (err) {
+      showToast(err.message || 'Failed to upload invoice')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <>
       <Topbar pageTitle={(VIEW_META[view] || VIEW_META.dashboard).title} />
@@ -52,6 +66,8 @@ export default function InvoiceListPage() {
         loading={invoicesLoading}
         error={invoicesError}
         onRetry={refetchInvoices}
+        onUploadInvoice={onUploadInvoice}
+        uploading={uploading}
       />
     </>
   )

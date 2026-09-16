@@ -6,7 +6,7 @@ import DetailScreen from '../components/DetailScreen'
 import ExceptionDetailScreen from '../components/ExceptionDetailScreen'
 import ClarificationModal from '../components/ClarificationModal'
 import { STATUS_META } from '../data/invoices'
-import { fetchInvoiceRecord, saveItemCrossref, updatePurchaseOrderStatus } from '../api/records'
+import { fetchInvoiceRecord, reprocessDuplicateInvoice, saveItemCrossref, updatePurchaseOrderStatus } from '../api/records'
 import { askAssistant } from '../api/assistant'
 import { buildVoucherPayload, createVoucher, extractVoucherNumber } from '../api/voucher'
 import { mapLineItemsFromInvoice, mapChargesFromInvoice, isItemNumberResolved } from '../utils/detailMapping'
@@ -27,6 +27,7 @@ export default function InvoiceDetailPage() {
 
   const [lineItems, setLineItems] = useState([])
   const [charges, setCharges] = useState([])
+  const [editedInvoiceNumber, setEditedInvoiceNumber] = useState('')
 
   // Reset the editable line items/charges whenever a different invoice loads. Adjusting
   // state during render (rather than in an effect) avoids an extra render pass — see
@@ -36,6 +37,7 @@ export default function InvoiceDetailPage() {
     setLineItemsLoadedFor(invoice.id)
     setLineItems(mapLineItemsFromInvoice(invoice))
     setCharges(mapChargesFromInvoice(invoice))
+    setEditedInvoiceNumber(invoice.raw?.pdf_fields?.invoice_number || invoice.invoiceNumber || '')
   }
 
   const [chatMessages, setChatMessages] = useState([])
@@ -160,6 +162,27 @@ export default function InvoiceDetailPage() {
     },
   })
 
+  const reprocessMutation = useMutation({
+    mutationFn: () => reprocessDuplicateInvoice(invoice, editedInvoiceNumber),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['invoice', id] })
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+
+      if (data.outcome === 'success') {
+        showToast(`Invoice ${editedInvoiceNumber} reprocessed successfully`)
+        navigate('/invoices')
+      } else if (data.outcome === 'no_receipt_yet') {
+        showToast(`JDE accepted ${editedInvoiceNumber}, but no PO receipt records exist yet`)
+        navigate('/invoices')
+      } else {
+        showToast(`Still an exception: ${data.exception_reason || 'unknown'} — ${data.error_message || ''}`)
+      }
+    },
+    onError: (err) => {
+      showToast(err.message || 'Failed to reprocess invoice')
+    },
+  })
+
   function openClarificationModal() {
     const invId = invoice?.invoiceNumber || ''
     setClarifyMessage(
@@ -239,6 +262,10 @@ export default function InvoiceDetailPage() {
           onUpdateCharge={updateCharge}
           onRemoveCharge={removeCharge}
           onAddCharge={addCharge}
+          invoiceNumber={editedInvoiceNumber}
+          onInvoiceNumberChange={setEditedInvoiceNumber}
+          onReprocess={() => reprocessMutation.mutate()}
+          reprocessPending={reprocessMutation.isPending}
           chatMessages={chatMessages}
           chatInput={chatInput}
           chatPending={chatPending}

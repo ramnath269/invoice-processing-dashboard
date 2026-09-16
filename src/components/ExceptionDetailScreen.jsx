@@ -6,13 +6,17 @@ import { money, fmtDate } from '../utils/format'
 const EXCEPTION_TITLES = {
   duplicate_invoice: 'Duplicate invoice',
   order_not_found: 'Order not found',
+  missing_order_number: 'Missing PO / order number',
+  not_an_invoice: 'Not an invoice',
 }
 
-// Detail view for an exception invoice (duplicate_invoice / order_not_found).
-// JDE's voucher-match never got past the error that caused the exception, so
-// there's no reliable ERP data to show or compare against - this renders PDF
-// values only, via ExceptionFormPanel, and has no Create Voucher path at all
-// (see InvoiceDetailPage / Topbar).
+// Detail view for an exception invoice (duplicate_invoice / order_not_found /
+// missing_order_number / not_an_invoice). JDE's voucher-match never got past
+// the error that caused the exception (not_an_invoice and
+// missing_order_number never even reach JDE), so there's no reliable ERP
+// data to show or compare against - this renders PDF values only, via
+// ExceptionFormPanel, and has no Create Voucher path at all (see
+// InvoiceDetailPage / Topbar).
 export default function ExceptionDetailScreen({
   invoice,
   userId,
@@ -22,6 +26,10 @@ export default function ExceptionDetailScreen({
   onUpdateCharge,
   onRemoveCharge,
   onAddCharge,
+  invoiceNumber,
+  onInvoiceNumberChange,
+  onReprocess,
+  reprocessPending,
   chatMessages,
   chatInput,
   chatPending,
@@ -64,6 +72,10 @@ export default function ExceptionDetailScreen({
           onUpdateCharge={onUpdateCharge}
           onRemoveCharge={onRemoveCharge}
           onAddCharge={onAddCharge}
+          invoiceNumber={invoiceNumber}
+          onInvoiceNumberChange={onInvoiceNumberChange}
+          onReprocess={onReprocess}
+          reprocessPending={reprocessPending}
         />
       </div>
 
